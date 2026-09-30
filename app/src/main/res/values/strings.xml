@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Netije</string>
+
+    <string name="nav_home">Главная</string>
+    <string name="nav_calendar">Календарь</string>
+    <string name="nav_reports">Отчёты</string>
+    <string name="nav_settings">Настройки</string>
+
+    <string name="summary_received">Получение средств</string>
+    <string name="summary_issued">Выдача средств</string>
+    <string name="summary_balance">Баланс</string>
+
+    <string name="filter_active">Активный</string>
+    <string name="filter_archived">Архив</string>
+    <string name="filter_all">Все</string>
+    <string name="filter_settled">Погашен</string>
+
+    <string name="search_hint">Поиск по имени…</string>
+    <string name="search">Поиск</string>
+
+    <string name="tx_received">Получено</string>
+    <string name="tx_issued">Выдано</string>
+    <string name="tx_received_full">Получение средств</string>
+    <string name="tx_issued_full">Выдача средств</string>
+    <string name="tx_purpose">Назначение</string>
+    <string name="tx_price">Цена</string>
+    <string name="tx_purpose_hint">Назначение</string>
+    <string name="tx_note_hint">Напишите примечание здесь…</string>
+    <string name="tx_note">Примечание</string>
+    <string name="tx_attachments">Вложения</string>
+    <string name="tx_amount">Сумма</string>
+    <string name="tx_date">Дата</string>
+    <string name="tx_time">Время</string>
+    <string name="tx_currency">TMT</string>
+
+    <string name="contact_select_title">Выберите контактное лицо</string>
+    <string name="contact_person_required">Контактное лицо *</string>
+    <string name="contact_person_hint">Контактное лицо</string>
+    <string name="add_new_person">Новый пользователь</string>
+    <string name="add_from_contacts">Добавить из контактов</string>
+    <string name="new_person_title">Новый пользователь</string>
+    <string name="person_name">Имя</string>
+    <string name="person_name_hint">Имя</string>
+    <string name="person_phone">Телефон</string>
+    <string name="person_phone_hint">Телефон</string>
+    <string name="person_add_phone">+ Добавить ещё</string>
+    <string name="person_email">Электронная почта</string>
+    <string name="person_email_hint">Электронная почта</string>
+    <string name="person_city">Город</string>
+    <string name="person_city_hint">Город</string>
+    <string name="person_address">Домашний адрес</string>
+    <string name="person_address_hint">Домашний адрес…</string>
+    <string name="person_important">Пометить как Важное</string>
+
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="export">Экспорт</string>
+    <string name="export_pdf">PDF (.pdf)</string>
+    <string name="export_xlsx">Excel (.xlsx)</string>
+    <string name="export_csv">CSV (.csv)</string>
+
+    <string name="empty_transactions_period">Нет транзакций за период</string>
+    <string name="empty_data_period">Нет данных за период</string>
+    <string name="empty_transactions">Нет транзакций</string>
+    <string name="no_persons_yet">Добавьте первого человека</string>
+    <string name="no_selected_person">--выберите--</string>
+    <string name="select_all">Все</string>
+
+    <string name="from_date">C:</string>
+    <string name="to_date">По:</string>
+
+    <string name="report_user_title">Отчет пользователя</string>
+    <string name="report_summary_title">Сводный отчет</string>
+    <string name="report_transactions_title">Отчет по транзакциям</string>
+    <string name="report_reports_menu">Отчёты</string>
+    <string name="report_user_label">Отчет пользователя</string>
+    <string name="report_summary_label">Сводный отчет пользователя</string>
+    <string name="report_transactions_label">Отчет по транзакциям</string>
+    <string name="report_user_hint">Детальная информация по одному человеку</string>
+    <string name="report_summary_hint">Все люди с итоговыми балансами</string>
+    <string name="report_transactions_hint">Фильтруемый список всех операций</string>
+    <string name="report_total">Итого</string>
+    <string name="report_operations_count">операций</string>
+
+    <string name="settings_title">Настройки</string>
+    <string name="settings_account">Аккаунт</string>
+    <string name="settings_signin">Войти через Google</string>
+    <string name="settings_signout">Выйти</string>
+    <string name="settings_currency">Валюта</string>
+    <string name="settings_language">Язык</string>
+    <string name="settings_darkmode">Тёмный режим</string>
+    <string name="settings_backup">Резервная копия</string>
+    <string name="settings_backup_export">Экспорт данных (JSON)</string>
+    <string name="settings_backup_import">Импорт из файла</string>
+    <string name="settings_backup_last">Последняя копия</string>
+    <string name="settings_general_section">Общие</string>
+    <string name="settings_data_section">Данные и безопасность</string>
+
+    <string name="lang_ru">Русский</string>
+    <string name="lang_tm">Türkmençe</string>
+    <string name="lang_en">English</string>
+
+    <string name="darkmode_on">Включен</string>
+    <string name="darkmode_off">Выключен</string>
+    <string name="darkmode_system">Система</string>
+
+    <string name="calendar_month_format">MMMM yyyy г.</string>
+    <string name="calendar_day_header" translatable="false">дек. 2025 г.</string>
+    <string name="calendar_day_weekday" translatable="false">четверг</string>
+    <string name="calendar_details_no_tx">Нет операций в этот день</string>
+
+    <string name="currency_tmt">TMT</string>
+
+    <string name="toast_export_success">отчет сохранен</string>
+    <string name="toast_export_error">Ошибка экспорта</string>
+    <string name="toast_share_title">Поделиться отчетом</string>
+    <string name="toast_share_subject">Netije отчет</string>
+
+    <string name="perm_read_contacts_rationale">Нужен доступ к контактам для быстрого добавления должников и кредиторов</string>
+    <string name="perm_contacts_denied">Нет разрешения на доступ к контактам</string>
+
+    <string name="backup_dialog_title">Автоматическое резервное копирование данных</string>
+    <string name="backup_freq_1h">Через 1 час</string>
+    <string name="backup_freq_1w">Через 1 неделю</string>
+    <string name="backup_freq_1m">Через 1 месяц</string>
+    <string name="backup_freq_custom">Свой вариант</string>
+    <string name="backup_unit_hour">час(а)</string>
+    <string name="backup_unit_day">день(я)</string>
+    <string name="backup_unit_week">неделя(и)</string>
+    <string name="backup_unit_month">месяц(ев)</string>
+    <string name="backup_custom_amount">Количество</string>
+    <string name="backup_custom_unit">Единица</string>
+    <string name="backup_now">Создать копию сейчас</string>
+    <string name="backup_saved_to">Резервная копия сохранена в: %1$s</string>
+    <string name="backup_freq_current">Текущая частота:</string>
+    <string name="backup_freq_never">Не настроено</string>
+    <string name="backup_gdrive">Google Drive</string>
+    <string name="backup_restore">Восстановить данные</string>
+    <string name="backup_restore_hint">Выберите файл .json для восстановления</string>
+
+    <string name="section_account">Управляет</string>
+    <string name="section_preferences">Предпочтения</string>
+    <string name="section_backup">Бэкап</string>
+
+    <string name="sign_in_label">Войти</string>
+    <string name="sign_out_label">Выйти</string>
+    <string name="account_placeholder">Аккаунт</string>
+    <string name="signin_hint">Войдите через Google</string>
+
+    <string name="home_empty">Нет данных. Нажмите +, чтобы добавить пользователя</string>
+    <string name="settled_filter">Закрытые</string>
+
+    <string name="photo_take">Сделать фото</string>
+    <string name="photo_gallery">Выбрать из галереи</string>
+    <string name="photo_contact">Импортировать из контакта</string>
+    <string name="photo_remove">Удалить фото</string>
+    <string name="photo_title">Фотография профиля</string>
+    <string name="attach_files">Прикрепить файлы</string>
+
+    <string name="tx_write_purpose">Напиши свое</string>
+    <string name="purpose_received_1">Возврат долга</string>
+    <string name="purpose_received_2">Займ от человека</string>
+    <string name="purpose_received_3">Оплата товара</string>
+    <string name="purpose_issued_1">Выдача долга</string>
+    <string name="purpose_issued_2">Возврат человеку</string>
+    <string name="purpose_issued_3">Покупка за счёт</string>
+
+    <string name="no_persons_select">Создайте пользователей</string>
+
+    <string name="darkmode_short_on">Вкл</string>
+    <string name="darkmode_short_off">Выкл</string>
+    <string name="darkmode_short_system">Система</string>
+
+    <string name="new_tx_title">Новая запись</string>
+    <string name="photo_action_choose">Выберите действие</string>
+    <string name="attach_photo">Добавить фото</string>
+    <string name="attach_file">Выбрать файл</string>
+    <string name="attach_count">Добавлено: %1$d</string>
+    <string name="person_add_email">+ Добавить ещё</string>
+    <string name="currency_symbol">TMT</string>
+    <string name="currency_usd">USD</string>
+    <string name="currency_eur">EUR</string>
+    <string name="currency_tmt_full">Manat (TMT)</string>
+
+    <string name="person_city_label">Город:</string>
+    <string name="person_address_label">Адрес:</string>
+    <string name="no_transactions_yet">Ещё нет транзакций</string>
+    <string name="transactions_header">Транзакции</string>
+    <string name="person_title_placeholder">Пользователь</string>
+
+    <string name="delete_person_btn">Удалить пользователя</string>
+    <string name="delete_person_title">Удалить пользователя?</string>
+    <string name="delete_person_message">Все транзакции этого пользователя также будут удалены. Это действие нельзя отменить.</string>
+    <string name="delete_confirm_btn">Удалить</string>
+
+    <string name="currency_selector_title">Выберите валюту</string>
+
+    <string name="remove">Удалить</string>
+
+    <!-- ========== Transaction Detail Screen ========== -->
+    <string name="transaction_detail_title">Детали транзакции</string>
+    <string name="transaction_detail_type">Тип:</string>
+    <string name="transaction_detail_amount">Сумма:</string>
+    <string name="transaction_detail_date">Дата:</string>
+    <string name="transaction_detail_time">Время:</string>
+    <string name="transaction_detail_person">Пользователь:</string>
+    <string name="transaction_detail_currency">Валюта:</string>
+    <string name="transaction_detail_purpose">Назначение:</string>
+    <string name="transaction_detail_note">Примечание:</string>
+    <string name="transaction_detail_attachments">Вложения</string>
+    <string name="transaction_detail_no_attachments">Нет вложений</string>
+    <string name="transaction_detail_no_purpose">—</string>
+    <string name="transaction_detail_no_note">—</string>
+    <string name="transaction_detail_edit_btn">Редактировать</string>
+    <string name="transaction_detail_export_btn">Экспорт</string>
+    <string name="transaction_detail_export_success">Экспорт выполнен</string>
+    <string name="transaction_detail_export_fail">Экспорт не удался</string>
+    <string name="transaction_detail_deleted">Транзакция удалена</string>
+    <string name="transaction_detail_not_found">Транзакция не найдена</string>
+    <string name="transaction_delete_title">Удалить транзакцию?</string>
+    <string name="transaction_delete_message">Это действие нельзя отменить.</string>
+    <string name="filter_received">Получено</string>
+    <string name="filter_issued">Выдано</string>
+    <string name="cancel_action">Отмена</string>
+    <string name="session_expired">Сессия истекла. Войдите заново.</string>
+</resources>

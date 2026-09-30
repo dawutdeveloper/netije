@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Netije</string>
+
+    <string name="nav_home">Baş sahypa</string>
+    <string name="nav_calendar">Sene tertibi</string>
+    <string name="nav_reports">Hasabatlar</string>
+    <string name="nav_settings">Sazlamalar</string>
+
+    <string name="summary_received">Alnan pul</string>
+    <string name="summary_issued">Berlen pul</string>
+    <string name="summary_balance">Galyndy</string>
+
+    <string name="filter_active">Işjeň</string>
+    <string name="filter_archived">Arhiwlenen</string>
+    <string name="filter_all">Hemmesi</string>
+    <string name="filter_settled">Hasaplaşylan</string>
+
+    <string name="search_hint">Ady boýunça gözläň…</string>
+    <string name="search">Gözlemek</string>
+
+    <string name="tx_received">Alnan</string>
+    <string name="tx_issued">Berlen</string>
+    <string name="tx_received_full">Algy</string>
+    <string name="tx_issued_full">Bergi</string>
+    <string name="tx_purpose">Maksady</string>
+    <string name="tx_price">Bahasy</string>
+    <string name="tx_purpose_hint">Maksadyny ýazyň</string>
+    <string name="tx_note_hint">Bellik ýazyň…</string>
+    <string name="tx_note">Bellik</string>
+    <string name="tx_attachments">Goşundylar</string>
+    <string name="tx_amount">Mukdary</string>
+    <string name="tx_date">Sene</string>
+    <string name="tx_time">Wagt</string>
+    <string name="tx_currency">TMT</string>
+
+    <string name="contact_select_title">Şahsy saýlaň</string>
+    <string name="contact_person_required">Şahsy *</string>
+    <string name="contact_person_hint">Şahsy saýlaň</string>
+    <string name="add_new_person">Täze şahs goşmak</string>
+    <string name="add_from_contacts">Kontaktlardan goşmak</string>
+    <string name="new_person_title">Täze şahs</string>
+    <string name="person_name">Ady</string>
+    <string name="person_name_hint">Adyny ýazyň</string>
+    <string name="person_phone">Telefon belgisi</string>
+    <string name="person_phone_hint">Telefon belgisini ýazyň</string>
+    <string name="person_add_phone">+ Başga belgi goşmak</string>
+    <string name="person_email">Elektron poçta</string>
+    <string name="person_email_hint">Elektron poçta salgysy</string>
+    <string name="person_city">Şäher</string>
+    <string name="person_city_hint">Şäheri ýazyň</string>
+    <string name="person_address">Salgysy</string>
+    <string name="person_address_hint">Salgysyny ýazyň…</string>
+    <string name="person_important">Möhüm hökmünde bellemek</string>
+
+    <string name="save">Saklamak</string>
+    <string name="cancel">Ýatyrmak</string>
+    <string name="export">Eksport etmek</string>
+    <string name="export_pdf">PDF (.pdf)</string>
+    <string name="export_xlsx">Excel (.xlsx)</string>
+    <string name="export_csv">CSV (.csv)</string>
+
+    <string name="empty_transactions_period">Saýlanan döwürde amal ýok</string>
+    <string name="empty_data_period">Saýlanan döwürde maglumat ýok</string>
+    <string name="empty_transactions">Amal ýok</string>
+    <string name="no_persons_yet">Ilki bilen şahs goşuň</string>
+    <string name="no_selected_person">--saýlanmadyk--</string>
+    <string name="select_all">Hemmesini saýlamak</string>
+
+    <string name="from_date">Başlangyç sene:</string>
+    <string name="to_date">Soňky sene:</string>
+
+    <string name="report_user_title">Şahs boýunça hasabat</string>
+    <string name="report_summary_title">Jemleýji hasabat</string>
+    <string name="report_transactions_title">Amallar boýunça hasabat</string>
+    <string name="report_reports_menu">Hasabatlar</string>
+    <string name="report_user_label">Şahs boýunça hasabat</string>
+    <string name="report_summary_label">Jemleýji hasabat</string>
+    <string name="report_transactions_label">Amallar boýunça hasabat</string>
+    <string name="report_user_hint">Bir şahs boýunça jikme-jik maglumatlar</string>
+    <string name="report_summary_hint">Ähli şahslar we olaryň umumy galyndylary</string>
+    <string name="report_transactions_hint">Ähli amallaryň süzülen sanawy</string>
+    <string name="report_total">Jemi</string>
+    <string name="report_operations_count">amal</string>
+
+    <string name="settings_title">Sazlamalar</string>
+    <string name="settings_account">Hasap</string>
+    <string name="settings_signin">Google arkaly girmek</string>
+    <string name="settings_signout">Çykmak</string>
+    <string name="settings_currency">Pul birligi</string>
+    <string name="settings_language">Dil</string>
+    <string name="settings_darkmode">Garaňky režim</string>
+    <string name="settings_backup">Ätiýaçlyk nusgasy</string>
+    <string name="settings_backup_export">Maglumatlary eksport etmek (JSON)</string>
+    <string name="settings_backup_import">Faýldan dikeltmek</string>
+    <string name="settings_backup_last">Soňky ätiýaçlyk nusgasy</string>
+    <string name="settings_general_section">Umumy</string>
+    <string name="settings_data_section">Maglumatlar we howpsuzlyk</string>
+
+    <string name="lang_ru">Rusça</string>
+    <string name="lang_tm">Türkmençe</string>
+    <string name="lang_en">Iňlisçe</string>
+
+    <string name="darkmode_on">Açyk</string>
+    <string name="darkmode_off">Öçük</string>
+    <string name="darkmode_system">Ulgam boýunça</string>
+
+    <string name="calendar_month_format">MMMM yyyy</string>
+    <string name="calendar_details_no_tx">Şu gün amal ýok</string>
+
+    <string name="currency_tmt">TMT</string>
+
+    <string name="toast_export_success">Hasabat üstünlikli saklandy</string>
+    <string name="toast_export_error">Eksport etmekde näsazlyk ýüze çykdy</string>
+    <string name="toast_share_title">Hasabaty paýlaşmak</string>
+    <string name="toast_share_subject">Netije hasabaty</string>
+
+    <string name="perm_read_contacts_rationale">Karz alanlary we karz berenleri çalt goşmak üçin kontaktlara girmäge rugsat gerek</string>
+    <string name="perm_contacts_denied">Kontaktlara girmäge rugsat berilmedi</string>
+
+    <string name="backup_dialog_title">Maglumatlaryň ätiýaçlyk nusgasyny awtomatiki döretmek</string>
+    <string name="backup_freq_1h">Her sagat</string>
+    <string name="backup_freq_1w">Her hepde</string>
+    <string name="backup_freq_1m">Her aý</string>
+    <string name="backup_freq_custom">Özbaşdak</string>
+    <string name="backup_unit_hour">sagat</string>
+    <string name="backup_unit_day">gün</string>
+    <string name="backup_unit_week">hepde</string>
+    <string name="backup_unit_month">aý</string>
+    <string name="backup_custom_amount">Mukdar</string>
+    <string name="backup_custom_unit">Birlik</string>
+    <string name="backup_now">Häzir ätiýaçlyk nusgasyny döretmek</string>
+    <string name="backup_saved_to">Şu ýere saklandy: %1$s</string>
+    <string name="backup_freq_current">Häzirki ýygylyk:</string>
+    <string name="backup_freq_never">Bellenmedik</string>
+    <string name="backup_gdrive">Google Drive</string>
+    <string name="backup_restore">Maglumatlary dikeltmek</string>
+    <string name="backup_restore_hint">Dikeltmek üçin .json faýly saýlaň</string>
+
+    <string name="section_account">Hasap dolandyryşy</string>
+    <string name="section_preferences">Saýlamalar</string>
+    <string name="section_backup">Ätiýaçlyk nusgasy</string>
+
+    <string name="sign_in_label">Girmek</string>
+    <string name="sign_out_label">Çykmak</string>
+    <string name="account_placeholder">Hasap</string>
+    <string name="signin_hint">Google arkaly girmek</string>
+
+    <string name="home_empty">Maglumat ýok. Şahs goşmak üçin + düwmesine basyň</string>
+    <string name="settled_filter">Hasaplaşylan</string>
+
+    <string name="photo_take">Surat düşürmek</string>
+    <string name="photo_gallery">Galereýadan saýlamak</string>
+    <string name="photo_contact">Kontaktdan almak</string>
+    <string name="photo_remove">Suraty aýyrmak</string>
+    <string name="photo_title">Profil suraty</string>
+    <string name="attach_files">Faýl goşmak</string>
+
+    <string name="tx_write_purpose">Öz maksadyňyzy ýazyň</string>
+    <string name="purpose_received_1">Karzyň üzülmegi</string>
+    <string name="purpose_received_2">Şahysdan karz almak</string>
+    <string name="purpose_received_3">Haryt üçin töleg</string>
+    <string name="purpose_issued_1">Karz bermek</string>
+    <string name="purpose_issued_2">Şahsa töleg etmek</string>
+    <string name="purpose_issued_3">Hasap arkaly satyn almak</string>
+
+    <string name="no_persons_select">Ilki bilen şahs dörediň</string>
+
+    <string name="darkmode_short_on">Açyk</string>
+    <string name="darkmode_short_off">Öçük</string>
+    <string name="darkmode_short_system">Ulgam boýunça</string>
+
+    <string name="new_tx_title">Täze amal</string>
+    <string name="photo_action_choose">Hereket saýlaň</string>
+    <string name="attach_photo">Surat goşmak</string>
+    <string name="attach_file">Faýl saýlamak</string>
+    <string name="attach_count">Goşuldy: %1$d</string>
+    <string name="person_add_email">+ Başga elektron poçta goşmak</string>
+    <string name="currency_symbol">TMT</string>
+    <string name="currency_usd">USD</string>
+    <string name="currency_eur">EUR</string>
+    <string name="currency_tmt_full">Manat (TMT)</string>
+
+    <string name="person_city_label">Şäher:</string>
+    <string name="person_address_label">Salgysy:</string>
+    <string name="no_transactions_yet">Entäk amal ýok</string>
+    <string name="transactions_header">Amallar</string>
+    <string name="person_title_placeholder">Şahs</string>
+
+    <string name="delete_person_btn">Şahsy aýyrmak</string>
+    <string name="delete_person_title">Şahsy aýyrmak isleýärsiňizmi?</string>
+    <string name="delete_person_message">Bu şahsa degişli ähli amallar hem aýrylar. Bu hereketi yzyna gaýtaryp bolmaýar.</string>
+    <string name="delete_confirm_btn">Aýyrmak</string>
+
+    <string name="currency_selector_title">Pul birligini saýlaň</string>
+
+    <string name="remove">Aýyrmak</string>
+
+    <!-- ========== Transaction Detail Screen ========== -->
+    <string name="transaction_detail_title">Amal maglumatlary</string>
+    <string name="transaction_detail_type">Görnüşi:</string>
+    <string name="transaction_detail_amount">Mukdary:</string>
+    <string name="transaction_detail_date">Senesi:</string>
+    <string name="transaction_detail_time">Wagty:</string>
+    <string name="transaction_detail_person">Şahsy:</string>
+    <string name="transaction_detail_currency">Pul birligi:</string>
+    <string name="transaction_detail_purpose">Maksady:</string>
+    <string name="transaction_detail_note">Bellik:</string>
+    <string name="transaction_detail_attachments">Goşmaçalar</string>
+    <string name="transaction_detail_no_attachments">Goşmaça ýok</string>
+    <string name="transaction_detail_no_purpose">—</string>
+    <string name="transaction_detail_no_note">—</string>
+    <string name="transaction_detail_edit_btn">Redaktirlemek</string>
+    <string name="transaction_detail_export_btn">Ýüklemek</string>
+    <string name="transaction_detail_export_success">Ýükleme üstünlikli</string>
+    <string name="transaction_detail_export_fail">Ýükleme üstünliksiz</string>
+    <string name="transaction_detail_deleted">Amal aýryldy</string>
+    <string name="transaction_detail_not_found">Amal tapylmady</string>
+    <string name="transaction_delete_title">Amaly aýyrmak isleýärsiňizmi?</string>
+    <string name="transaction_delete_message">Bu hereketi yzyna gaýtaryp bolmaýar.</string>
+    <string name="filter_received">Alnan</string>
+    <string name="filter_issued">Berilen</string>
+    <string name="cancel_action">Ýatyrmak</string>
+    <string name="session_expired">Sesiýa gutardy. Täzeden giriň.</string>
+</resources>

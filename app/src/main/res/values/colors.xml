@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary_blue">#FF2563EB</color>
+    <color name="primary_blue_container">#FFDBEAFE</color>
+    <color name="primary_blue_dark">#FF1D4ED8</color>
+
+    <color name="positive_green">#FF16A34A</color>
+    <color name="positive_green_container">#FFDCFCE7</color>
+
+    <color name="negative_red">#FFDC2626</color>
+    <color name="negative_red_container">#FFFEE2E2</color>
+
+    <color name="neutral_bg_light">#FFF0F2F5</color>
+    <color name="neutral_bg_dark">#FF121212</color>
+
+    <color name="neutral_surface">#FFFFFFFF</color>
+    <color name="neutral_surface_dark">#FF1E1E1E</color>
+
+    <color name="neutral_border">#FFE5E7EB</color>
+    <color name="neutral_border_dark">#FF374151</color>
+
+    <color name="neutral_text_primary">#FF111827</color>
+    <color name="neutral_text_primary_dark">#FFF9FAFB</color>
+    <color name="neutral_text_secondary">#FF6B7280</color>
+    <color name="neutral_text_secondary_dark">#FF9CA3AF</color>
+
+    <color name="turkmen_flag_green">#FF009639</color>
+    <color name="turkmen_flag_red">#FFCE1126</color>
+
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>
