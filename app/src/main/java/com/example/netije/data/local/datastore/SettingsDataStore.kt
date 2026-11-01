@@ -35,7 +35,7 @@ class SettingsDataStore @Inject constructor(private val context: Context) {
 
     val settings: Flow<AppSettings> = context.settingsDataStore.data.map { prefs ->
         AppSettings(
-            currencyCode = prefs[Keys.CURRENCY] ?: "TMT",
+            currencyCode = "TMT",
             language = AppLanguage.fromCode(prefs[Keys.LANGUAGE]),
             darkMode = DarkModeConfig.fromString(prefs[Keys.DARK_MODE]),
             lastBackupAt = prefs[Keys.LAST_BACKUP],
@@ -51,9 +51,9 @@ class SettingsDataStore @Inject constructor(private val context: Context) {
     }
 
     suspend fun setCurrency(code: String) {
-        context.settingsDataStore.edit { it[Keys.CURRENCY] = code }
+        context.settingsDataStore.edit { it[Keys.CURRENCY] = "TMT" }
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-            .putString(PREF_KEY_CURRENCY, code).apply()
+            .putString(PREF_KEY_CURRENCY, "TMT").apply()
     }
 
     suspend fun setLanguage(language: AppLanguage) {

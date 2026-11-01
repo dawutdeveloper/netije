@@ -1,5 +1,6 @@
 import {
   IsArray,
+  ValidateNested,
   IsEnum,
   IsInt,
   IsNumber,
@@ -8,6 +9,16 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class TransactionChangeDto {
+  @IsString() id: string;
+  @IsNumber() @Min(0) previousAmount: number;
+  @IsNumber() @Min(0) amount: number;
+  @IsEnum(['RECEIVED', 'ISSUED']) previousType: 'RECEIVED' | 'ISSUED';
+  @IsEnum(['RECEIVED', 'ISSUED']) type: 'RECEIVED' | 'ISSUED';
+  @IsInt() @Min(0) changedAt: number;
+}
 
 export class TransactionDto {
   @IsOptional() @IsString() id?: string;
@@ -18,6 +29,8 @@ export class TransactionDto {
   @IsOptional() @IsString() purpose?: string;
   @IsOptional() @IsString() note?: string;
   @IsOptional() @IsArray() attachments?: string[];
+  @IsOptional() @IsArray() @ValidateNested({ each: true })
+  @Type(() => TransactionChangeDto) changes?: TransactionChangeDto[];
   @IsInt() @Min(0) date: number;
   @IsInt() @Min(0) time: number;
 }

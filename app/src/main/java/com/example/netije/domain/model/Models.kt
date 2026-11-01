@@ -74,6 +74,17 @@ data class Person(
     val firstEmail: String? get() = emails.firstOrNull()
 }
 
+data class TransactionChange(
+    val id: String,
+    val previousAmount: Double,
+    val amount: Double,
+    val previousType: TransactionType,
+    val type: TransactionType,
+    val changedAt: Long
+) {
+    val difference: Double get() = amount - previousAmount
+}
+
 data class Transaction(
     val id: String,
     val personId: String,
@@ -86,7 +97,8 @@ data class Transaction(
     val date: Long,
     val time: Long,
     val createdAt: Long = System.currentTimeMillis(),
-    val updatedAt: Long = System.currentTimeMillis()
+    val updatedAt: Long = System.currentTimeMillis(),
+    val changes: List<TransactionChange> = emptyList()
 )
 
 data class PersonWithTransactions(

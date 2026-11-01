@@ -1,7 +1,5 @@
 package com.example.netije.presentation.screen.transaction
 
-import android.content.Context
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,7 +45,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -75,7 +72,6 @@ import com.example.netije.domain.model.TransactionType
 import com.example.netije.presentation.component.AmountText
 import com.example.netije.presentation.util.ReportExportHelper
 import com.example.netije.presentation.util.ReportFormat
-import com.example.netije.presentation.viewmodel.SettingsViewModel
 import com.example.netije.presentation.viewmodel.TransactionDetailViewModel
 import com.example.netije.ui.theme.NegativeRed
 import com.example.netije.ui.theme.PositiveGreen
@@ -83,7 +79,6 @@ import com.example.netije.ui.theme.PrimaryBlue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -91,20 +86,13 @@ import java.util.Locale
 @Composable
 fun TransactionDetailScreen(
     nav: NavController,
-    vm: TransactionDetailViewModel = hiltViewModel(),
-    settingsVm: SettingsViewModel = hiltViewModel()
+    vm: TransactionDetailViewModel = hiltViewModel()
 ) {
     val state by vm.state.collectAsState()
-    val settings by settingsVm.state.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val currency = remember(state) {
-        state.transaction?.currency
-            ?.takeIf { it.isNotBlank() }
-            ?: settings.settings.currencyCode.takeIf { it.isNotBlank() }
-            ?: "TMT"
-    }
+    val currency = "TMT"
     val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
         ?: Locale.getDefault()
     val dfDate = remember(locale) { SimpleDateFormat("dd MMM yyyy", locale) }
@@ -453,6 +441,47 @@ fun TransactionDetailScreen(
                     }
                 }
 
+                if (tx.changes.isNotEmpty()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(20.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text(stringResource(R.string.transaction_change_history), fontWeight = FontWeight.SemiBold)
+                            tx.changes.asReversed().forEach { change ->
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Text(
+                                        "${dfDate.format(java.util.Date(change.changedAt))} ${dfTime.format(java.util.Date(change.changedAt))}",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(stringResource(
+                                        R.string.transaction_amount_change,
+                                        String.format(locale, "%.2f", change.previousAmount),
+                                        String.format(locale, "%.2f", change.amount)
+                                    ))
+                                    Text(
+                                        stringResource(R.string.transaction_change_difference,
+                                            String.format(locale, "%+.2f", change.difference)),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                    if (change.previousType != change.type) {
+                                        Text(stringResource(
+                                            R.string.transaction_type_change,
+                                            stringResource(if (change.previousType == TransactionType.RECEIVED) R.string.filter_received else R.string.filter_issued),
+                                            stringResource(if (change.type == TransactionType.RECEIVED) R.string.filter_received else R.string.filter_issued)
+                                        ))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 // ===== Attachments
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -485,7 +514,15 @@ fun TransactionDetailScreen(
                                     AttachmentThumb(
                                         attPath = attPath,
                                         onClick = {
-                                            openFile(context, attPath)
+                                            scope.launch {
+                                                runCatching {
+                                                    withContext(Dispatchers.IO) {
+                                                        com.example.netije.presentation.util.TransactionAttachments.open(context, attPath)
+                                                    }
+                                                }.onFailure {
+                                                    Toast.makeText(context, context.getString(R.string.attachment_open_failed), Toast.LENGTH_LONG).show()
+                                                }
+                                            }
                                         }
                                     )
                                 }
@@ -564,9 +601,12 @@ private fun InfoRow(label: String, value: String) {
 
 @Composable
 private fun AttachmentThumb(attPath: String, onClick: () -> Unit) {
-    val file = File(attPath)
-    val isImage = listOf("jpg", "jpeg", "png", "webp", "gif", "bmp").any { ext ->
-        attPath.substringAfterLast('.', "").lowercase() == ext
+    val context = LocalContext.current
+    val isImage = remember(attPath) {
+        com.example.netije.presentation.util.TransactionAttachments.mime(context, attPath).startsWith("image/")
+    }
+    val filename = remember(attPath) {
+        com.example.netije.presentation.util.TransactionAttachments.name(context, attPath)
     }
     Box(
         modifier = Modifier
@@ -578,10 +618,10 @@ private fun AttachmentThumb(attPath: String, onClick: () -> Unit) {
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        if (isImage && file.exists()) {
+        if (isImage) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(file)
+                    .data(com.example.netije.presentation.util.TransactionAttachments.uri(attPath))
                     .crossfade(true)
                     .build(),
                 contentDescription = null,
@@ -602,8 +642,9 @@ private fun AttachmentThumb(attPath: String, onClick: () -> Unit) {
                     modifier = Modifier.size(28.dp)
                 )
                 Text(
-                    text = attPath.substringAfterLast('/').take(10) +
-                            (if (attPath.length > 10) "…" else ""),
+                    text = filename,
+                    maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 6.dp)
@@ -611,42 +652,4 @@ private fun AttachmentThumb(attPath: String, onClick: () -> Unit) {
             }
         }
     }
-}
-
-private fun openFile(ctx: Context, attPath: String) {
-    val file = File(attPath)
-    if (!file.exists()) {
-        Toast.makeText(ctx, "Not found: $attPath", Toast.LENGTH_LONG).show()
-        return
-    }
-    val uri: Uri = runCatching {
-        androidx.core.content.FileProvider.getUriForFile(
-            ctx,
-            "${ctx.packageName}.fileprovider",
-            file
-        )
-    }.getOrElse { Uri.fromFile(file) }
-    val mime = ctx.contentResolver.getType(uri)
-        ?: guessMime(attPath.substringAfterLast('.', "").lowercase())
-    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-        setDataAndType(uri, mime)
-        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-    val chooser = android.content.Intent.createChooser(intent, null)
-        .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
-    runCatching { ctx.startActivity(chooser) }
-        .onFailure { Toast.makeText(ctx, it.message ?: "Open failed", Toast.LENGTH_LONG).show() }
-}
-
-private fun guessMime(ext: String): String = when (ext) {
-    "pdf" -> "application/pdf"
-    "jpg", "jpeg" -> "image/jpeg"
-    "png" -> "image/png"
-    "webp" -> "image/webp"
-    "gif" -> "image/gif"
-    "txt" -> "text/plain"
-    "doc" -> "application/msword"
-    "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    "xls", "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    else -> "*/*"
 }

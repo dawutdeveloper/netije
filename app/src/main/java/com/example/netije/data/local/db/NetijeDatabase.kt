@@ -4,11 +4,10 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import com.example.netije.BuildConfig
 
 @Database(
     entities = [UserEntity::class, PersonEntity::class, TransactionEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class NetijeDatabase : RoomDatabase() {
@@ -17,6 +16,12 @@ abstract class NetijeDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
 
     companion object {
+        val MIGRATION_1_2 = object : androidx.room.migration.Migration(1, 2) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN changes TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("UPDATE transactions SET currency = 'TMT'")
+            }
+        }
         @Volatile
         private var INSTANCE: NetijeDatabase? = null
 
@@ -26,11 +31,7 @@ abstract class NetijeDatabase : RoomDatabase() {
                     context.applicationContext,
                     NetijeDatabase::class.java,
                     "netije_db"
-                ).apply {
-                    if (BuildConfig.DEBUG) {
-                        fallbackToDestructiveMigration()
-                    }
-                }.build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2).build().also { INSTANCE = it }
             }
     }
 }

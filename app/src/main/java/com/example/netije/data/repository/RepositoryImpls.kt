@@ -44,6 +44,13 @@ import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
+private suspend fun TransactionDto.toLocalEntity(dao: TransactionDao): TransactionEntity {
+    val local = id?.let { dao.getById(it)?.toDomain() }
+    val mergedChanges = (local?.changes.orEmpty() + changes.orEmpty())
+        .distinctBy { it.id }.sortedBy { it.changedAt }
+    return toDomain().copy(changes = mergedChanges).toEntity()
+}
+
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     @ApplicationContext private val ctx: android.content.Context,
@@ -100,7 +107,7 @@ class AuthRepositoryImpl @Inject constructor(
             val body = if (res.isSuccessful) res.body() else null
             if (body != null) {
                 personDao.upsertAll(body.persons.map { it.toDomain().toEntity() })
-                transactionDao.upsertAll(body.transactions.map { it.toDomain().toEntity() })
+                transactionDao.upsertAll(body.transactions.map { it.toLocalEntity(transactionDao) })
             }
         } catch (_: Exception) { }
     }
@@ -276,7 +283,7 @@ class TransactionRepositoryImpl @Inject constructor(
             val res = transactionsApi.getAll()
             val body = if (res.isSuccessful) res.body() else null
             if (body != null) {
-                transactionDao.upsertAll(body.map { it.toDomain().toEntity() })
+                transactionDao.upsertAll(body.map { it.toLocalEntity(transactionDao) })
             }
         } catch (_: Exception) { }
     }

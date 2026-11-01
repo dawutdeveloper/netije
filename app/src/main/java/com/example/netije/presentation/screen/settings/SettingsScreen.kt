@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Search
@@ -247,85 +246,6 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                                         indication = null
                                     )
                                 )
-                            }
-                            HorizontalDivider()
-                            var currencyExpanded by remember { mutableStateOf(false) }
-                            val currencyOptions = listOf(
-                                "TMT" to stringResource(R.string.currency_symbol),
-                                "USD" to stringResource(R.string.currency_usd),
-                                "EUR" to stringResource(R.string.currency_eur)
-                            )
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(18.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(RoundedCornerShape(14.dp))
-                                            .background(MaterialTheme.colorScheme.primaryContainer),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Payments,
-                                            null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(26.dp)
-                                        )
-                                    }
-                                    Spacer(Modifier.width(14.dp))
-                                    Text(
-                                        text = stringResource(R.string.settings_currency),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                                Spacer(Modifier.height(10.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(start = 62.dp)
-                                ) {
-                                    ExposedDropdownMenuBox(
-                                        expanded = currencyExpanded,
-                                        onExpandedChange = { currencyExpanded = it },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        OutlinedTextField(
-                                            value = currencyOptions.firstOrNull { it.first == state.settings.currencyCode }?.second
-                                                ?: state.settings.currencyCode,
-                                            onValueChange = {},
-                                            readOnly = true,
-                                            singleLine = true,
-                                            trailingIcon = {
-                                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = currencyExpanded)
-                                            },
-                                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
-                                            shape = RoundedCornerShape(16.dp),
-                                            modifier = Modifier
-                                                .menuAnchor()
-                                                .fillMaxWidth()
-                                        )
-                                        ExposedDropdownMenu(
-                                            expanded = currencyExpanded,
-                                            onDismissRequest = { currencyExpanded = false },
-                                            modifier = Modifier.exposedDropdownSize()
-                                        ) {
-                                            currencyOptions.forEach { opt ->
-                                                DropdownMenuItem(
-                                                    text = { Text(opt.second) },
-                                                    onClick = {
-                                                        vm.onCurrency(opt.first)
-                                                        currencyExpanded = false
-                                                    }
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
                             }
                         }
                     }

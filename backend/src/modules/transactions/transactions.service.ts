@@ -14,6 +14,19 @@ export class TransactionsService {
     private readonly persons: PersonsService,
   ) {}
 
+  private mergeChanges(current: Transaction, dto: TransactionDto) {
+    const changes = new Map((current.changes ?? []).map((change) => [change.id, change]));
+    for (const change of dto.changes ?? []) changes.set(change.id, change);
+    if (dto.changes == null && (current.amount !== dto.amount || current.type !== dto.type)) {
+      const change = {
+        id: uuid(), previousAmount: current.amount, amount: dto.amount,
+        previousType: current.type, type: dto.type, changedAt: Date.now(),
+      };
+      changes.set(change.id, change);
+    }
+    return [...changes.values()].sort((a, b) => a.changedAt - b.changedAt);
+  }
+
   async list(owner: User, f: ListFilters) {
     const where: any = { ownerId: owner.id };
     if (f.personId) where.personId = f.personId;
@@ -38,10 +51,11 @@ export class TransactionsService {
       personId: dto.personId,
       type: dto.type,
       amount: dto.amount,
-      currency: dto.currency ?? 'TMT',
+      currency: 'TMT',
       purpose: dto.purpose,
       note: dto.note,
       attachments: dto.attachments ?? [],
+      changes: dto.changes ?? [],
       date: dto.date,
       time: dto.time,
     });
@@ -54,10 +68,11 @@ export class TransactionsService {
       personId: dto.personId ?? t.personId,
       type: dto.type ?? t.type,
       amount: dto.amount ?? t.amount,
-      currency: dto.currency ?? t.currency,
+      currency: 'TMT',
       purpose: dto.purpose ?? t.purpose,
       note: dto.note ?? t.note,
       attachments: dto.attachments ?? t.attachments,
+      changes: this.mergeChanges(t, dto),
       date: dto.date ?? t.date,
       time: dto.time ?? t.time,
     });
@@ -97,10 +112,11 @@ export class TransactionsService {
           personId: d.personId ?? existing.personId,
           type: d.type ?? existing.type,
           amount: d.amount ?? existing.amount,
-          currency: d.currency ?? existing.currency,
+          currency: 'TMT',
           purpose: d.purpose ?? existing.purpose,
           note: d.note ?? existing.note,
           attachments: d.attachments ?? existing.attachments,
+          changes: this.mergeChanges(existing, d),
           date: d.date ?? existing.date,
           time: d.time ?? existing.time,
         });
@@ -114,10 +130,11 @@ export class TransactionsService {
               personId: d.personId,
               type: d.type,
               amount: d.amount,
-              currency: d.currency ?? 'TMT',
+              currency: 'TMT',
               purpose: d.purpose,
               note: d.note,
               attachments: d.attachments ?? [],
+              changes: d.changes ?? [],
               date: d.date,
               time: d.time,
             }),

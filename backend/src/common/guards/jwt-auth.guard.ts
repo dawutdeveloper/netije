@@ -10,7 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
-import { User } from '../modules/auth/user.entity';
+import { User } from '../../modules/auth/user.entity';
 import { Reflector } from '@nestjs/core';
 
 export const IS_PUBLIC_KEY = 'isPublic';

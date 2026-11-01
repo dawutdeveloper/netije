@@ -87,7 +87,6 @@
     <string name="settings_account">Hasap</string>
     <string name="settings_signin">Google arkaly girmek</string>
     <string name="settings_signout">Çykmak</string>
-    <string name="settings_currency">Pul birligi</string>
     <string name="settings_language">Dil</string>
     <string name="settings_darkmode">Garaňky režim</string>
     <string name="settings_backup">Ätiýaçlyk nusgasy</string>
@@ -177,8 +176,6 @@
     <string name="attach_count">Goşuldy: %1$d</string>
     <string name="person_add_email">+ Başga elektron poçta goşmak</string>
     <string name="currency_symbol">TMT</string>
-    <string name="currency_usd">USD</string>
-    <string name="currency_eur">EUR</string>
     <string name="currency_tmt_full">Manat (TMT)</string>
 
     <string name="person_city_label">Şäher:</string>
@@ -222,4 +219,10 @@
     <string name="filter_issued">Berilen</string>
     <string name="cancel_action">Ýatyrmak</string>
     <string name="session_expired">Sesiýa gutardy. Täzeden giriň.</string>
+    <string name="attachment_import_failed">Goşundyny saklap bolmady. Faýly täzeden saýlaň.</string>
+    <string name="attachment_open_failed">Goşundyny açyp bolmady. Faýlyň elýeterlidigini we ony açýan programmanyň bardygyny barlaň.</string>
+    <string name="transaction_change_history">Geleşigiň üýtgeşmeleri</string>
+    <string name="transaction_amount_change">%1$s → %2$s TMT</string>
+    <string name="transaction_change_difference">Üýtgeşme: %1$s TMT</string>
+    <string name="transaction_type_change">%1$s → %2$s</string>
 </resources>

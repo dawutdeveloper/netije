@@ -82,6 +82,9 @@ import com.example.netije.domain.model.TransactionType
 import com.example.netije.presentation.component.SegmentedTypeControl
 import com.example.netije.presentation.navigation.Routes
 import com.example.netije.presentation.util.rememberCameraCaptureLauncher
+import com.example.netije.presentation.util.TransactionAttachments
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.example.netije.presentation.viewmodel.NewTransactionViewModel
 
 import kotlinx.coroutines.launch
@@ -110,6 +113,8 @@ fun NewTransactionScreen(
     val amount by vm.amount.collectAsState()
     val note by vm.note.collectAsState()
     val attachments by vm.attachments.collectAsState()
+    val ready by vm.ready.collectAsState()
+    var saving by remember { mutableStateOf(false) }
     val personsListState = vm.personsList.collectAsState()
 
     // Preselections from navigation arguments (applied once on first composition)
@@ -142,11 +147,27 @@ fun NewTransactionScreen(
     var showAttachSheet by remember { mutableStateOf(false) }
     val attachSheetState = rememberModalBottomSheetState()
 
+    val attachmentError = stringResource(R.string.attachment_import_failed)
+    var importingAttachments by remember { mutableStateOf(0) }
+    fun importAttachment(uri: Uri) {
+        importingAttachments++
+        scope.launch {
+            try {
+                val path = withContext(Dispatchers.IO) { TransactionAttachments.import(ctx, uri) }
+                vm.addAttachment(path)
+            } catch (_: Exception) {
+                android.widget.Toast.makeText(ctx, attachmentError, android.widget.Toast.LENGTH_LONG).show()
+            } finally {
+                importingAttachments--
+            }
+        }
+    }
+
     // ─── Attachment launchers ──────────────────────────────────────────
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
-        uri?.let { vm.addAttachment(it.toString()) }
+        uri?.let { importAttachment(it) }
     }
     val pickFileLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -157,12 +178,12 @@ fun NewTransactionScreen(
                     it, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
                 )
             }
-            vm.addAttachment(it.toString())
+            importAttachment(it)
         }
     }
     // Use the reliable FileProvider-backed camera helper (works on Xiaomi)
     val (attachmentCameraLauncher, _) = rememberCameraCaptureLauncher(
-        onImageSaved = { uri -> vm.addAttachment(uri.toString()) },
+        onImageSaved = { uri -> importAttachment(uri) },
         onFailed = { /* silent — user cancelled or no camera available */ }
     )
 
@@ -516,8 +537,8 @@ fun NewTransactionScreen(
                                                 .padding(4.dp),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            val u = runCatching { Uri.parse(uriStr) }.getOrNull()
-                                            if (u != null) {
+                                            val u = com.example.netije.presentation.util.TransactionAttachments.uri(uriStr)
+                                            if (TransactionAttachments.mime(ctx, uriStr).startsWith("image/")) {
                                                 AsyncImage(
                                                     model = u,
                                                     contentDescription = null,
@@ -569,10 +590,16 @@ fun NewTransactionScreen(
                     .padding(horizontal = 18.dp, vertical = 18.dp)
             ) {
                 Button(
+                    enabled = ready && !saving && importingAttachments == 0,
                     onClick = {
                         scope.launch {
-                            val id = vm.save()
-                            if (id != null) nav.popBackStack()
+                            saving = true
+                            try {
+                                val id = vm.save()
+                                if (id != null) nav.popBackStack()
+                            } finally {
+                                saving = false
+                            }
                         }
                     },
                     modifier = Modifier

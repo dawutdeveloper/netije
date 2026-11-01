@@ -40,6 +40,7 @@ data class TransactionEntity(
     val purpose: String? = null,
     val note: String? = null,
     val attachments: String = "",
+    @androidx.room.ColumnInfo(defaultValue = "'[]'") val changes: String = "[]",
     val date: Long,
     val time: Long,
     val createdAt: Long = System.currentTimeMillis(),

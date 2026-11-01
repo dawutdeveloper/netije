@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Person } from '../persons/person.entity';
 import { User } from '../auth/user.entity';
+import type { TransactionChangeDto } from './dto';
 
 @Entity('transactions')
 @Index(['ownerId', 'personId'])
@@ -30,6 +31,8 @@ export class Transaction {
   @Column({ nullable: true }) purpose?: string;
   @Column({ nullable: true, type: 'text' }) note?: string;
   @Column({ type: 'text', array: true, default: '{}' }) attachments: string[];
+
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" }) changes: TransactionChangeDto[];
 
   @Column({ type: 'bigint' }) date: number;
   @Column({ type: 'bigint' }) time: number;

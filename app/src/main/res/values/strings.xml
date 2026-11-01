@@ -87,7 +87,6 @@
     <string name="settings_account">Аккаунт</string>
     <string name="settings_signin">Войти через Google</string>
     <string name="settings_signout">Выйти</string>
-    <string name="settings_currency">Валюта</string>
     <string name="settings_language">Язык</string>
     <string name="settings_darkmode">Тёмный режим</string>
     <string name="settings_backup">Резервная копия</string>
@@ -179,8 +178,6 @@
     <string name="attach_count">Добавлено: %1$d</string>
     <string name="person_add_email">+ Добавить ещё</string>
     <string name="currency_symbol">TMT</string>
-    <string name="currency_usd">USD</string>
-    <string name="currency_eur">EUR</string>
     <string name="currency_tmt_full">Manat (TMT)</string>
 
     <string name="person_city_label">Город:</string>
@@ -224,4 +221,10 @@
     <string name="filter_issued">Выдано</string>
     <string name="cancel_action">Отмена</string>
     <string name="session_expired">Сессия истекла. Войдите заново.</string>
+    <string name="attachment_import_failed">Не удалось сохранить вложение. Выберите файл ещё раз.</string>
+    <string name="attachment_open_failed">Не удалось открыть вложение. Проверьте доступность файла и наличие приложения для его просмотра.</string>
+    <string name="transaction_change_history">Изменения транзакции</string>
+    <string name="transaction_amount_change">%1$s → %2$s TMT</string>
+    <string name="transaction_change_difference">Изменение: %1$s TMT</string>
+    <string name="transaction_type_change">%1$s → %2$s</string>
 </resources>

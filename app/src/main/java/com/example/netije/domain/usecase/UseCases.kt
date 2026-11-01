@@ -70,7 +70,26 @@ class ObserveTransactionsByDayUseCase @Inject constructor(private val repo: Tran
 class SaveTransactionUseCase @Inject constructor(private val repo: TransactionRepository) {
     suspend operator fun invoke(transaction: Transaction): String {
         val id = transaction.id.ifEmpty { UUID.randomUUID().toString() }
-        return repo.upsertTransaction(transaction.copy(id = id, updatedAt = System.currentTimeMillis()))
+        val existing = if (transaction.id.isNotEmpty()) repo.getTransaction(id) else null
+        val now = System.currentTimeMillis()
+        val changes = existing?.changes.orEmpty().toMutableList()
+        if (existing != null && (existing.amount != transaction.amount || existing.type != transaction.type)) {
+            changes += com.example.netije.domain.model.TransactionChange(
+                id = UUID.randomUUID().toString(),
+                previousAmount = existing.amount,
+                amount = transaction.amount,
+                previousType = existing.type,
+                type = transaction.type,
+                changedAt = now
+            )
+        }
+        return repo.upsertTransaction(transaction.copy(
+            id = id,
+            currency = "TMT",
+            createdAt = existing?.createdAt ?: transaction.createdAt,
+            updatedAt = now,
+            changes = changes
+        ))
     }
 }
 

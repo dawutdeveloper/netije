@@ -279,7 +279,7 @@ class NewTransactionViewModel @Inject constructor(
     val purpose = MutableStateFlow("")
     val amount = MutableStateFlow("")
     val note = MutableStateFlow("")
-    val currency = MutableStateFlow("TMT")
+    val ready = MutableStateFlow(editingTransactionId == null)
     private val persistedAttachments: MutableStateFlow<List<String>> = MutableStateFlow(
         (savedStateHandle[KEY_ATTACHMENTS] ?: emptyList<String>()).toList()
     )
@@ -306,13 +306,13 @@ class NewTransactionViewModel @Inject constructor(
                     amount.value = if (existing.amount == 0.0) "" else
                         java.text.DecimalFormat("#.########").format(existing.amount)
                     note.value = existing.note.orEmpty()
-                    currency.value = existing.currency.ifBlank { "TMT" }
                     persistedAttachments.value = existing.attachments
                     if (personId.value.isNullOrBlank()) {
                         val p = getPerson(existing.personId)
                         personId.value = existing.personId
                         personName.value = p?.name
                     }
+                    ready.value = true
                 }
             }
         }
@@ -348,6 +348,7 @@ class NewTransactionViewModel @Inject constructor(
     }
 
     suspend fun save(): String? {
+        if (!ready.value) return null
         val pid = personId.value ?: return null
         val amt = amount.value.replace(",", ".").toDoubleOrNull() ?: 0.0
         if (pid.isBlank() || amt <= 0.0) return null
@@ -357,7 +358,7 @@ class NewTransactionViewModel @Inject constructor(
                 personId = pid,
                 type = type.value,
                 amount = amt,
-                currency = currency.value,
+                currency = "TMT",
                 purpose = purpose.value.trim().ifBlank { null },
                 note = note.value.trim().ifBlank { null },
                 attachments = attachments.value,
@@ -473,7 +474,7 @@ data class TransactionDetailState(
 
 @HiltViewModel
 class TransactionDetailViewModel @Inject constructor(
-    private val getTransaction: com.example.netije.domain.usecase.GetTransactionUseCase,
+    observeTransactions: ObserveTransactionsUseCase,
     private val getPerson: com.example.netije.domain.usecase.GetPersonUseCase,
     private val deleteTransaction: com.example.netije.domain.usecase.DeleteTransactionUseCase,
     private val reportsApi: ReportsApi,
@@ -486,17 +487,17 @@ class TransactionDetailViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val tx = getTransaction(transactionId)
-            if (tx == null) {
-                _state.value = TransactionDetailState(loaded = true, notFound = true)
-            } else {
-                val person = tx.personId.takeIf { it.isNotBlank() }?.let { getPerson(it) }
-                _state.value = TransactionDetailState(
-                    transaction = tx,
-                    person = person,
-                    loaded = true,
-                    notFound = false
-                )
+            observeTransactions().collect { transactions ->
+                val tx = transactions.firstOrNull { it.id == transactionId }
+                _state.value = if (tx == null) {
+                    TransactionDetailState(loaded = true, notFound = true)
+                } else {
+                    TransactionDetailState(
+                        transaction = tx,
+                        person = getPerson(tx.personId),
+                        loaded = true
+                    )
+                }
             }
         }
     }
