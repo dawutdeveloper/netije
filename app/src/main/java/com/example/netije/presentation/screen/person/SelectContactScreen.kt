@@ -122,7 +122,7 @@ fun SelectContactScreen(
                         label = when (status) {
                             PersonStatus.ACTIVE -> stringResource(R.string.filter_active)
                             PersonStatus.ARCHIVED -> stringResource(R.string.filter_archived)
-                            PersonStatus.SETTLED -> stringResource(R.string.settled_filter)
+                            PersonStatus.SETTLED -> stringResource(R.string.filter_settled)
                             null -> stringResource(R.string.filter_all)
                         },
                         selected = true,
@@ -132,13 +132,14 @@ fun SelectContactScreen(
                         expanded = filterExpanded,
                         onDismissRequest = { filterExpanded = false }
                     ) {
-                        listOf(PersonStatus.ACTIVE, PersonStatus.ARCHIVED, null).forEach { opt ->
+                        listOf(PersonStatus.ACTIVE, PersonStatus.ARCHIVED, PersonStatus.SETTLED, null).forEach { opt ->
                             DropdownMenuItem(
                                 text = {
                                     Text(
                                         when (opt) {
                                             PersonStatus.ACTIVE -> stringResource(R.string.filter_active)
                                             PersonStatus.ARCHIVED -> stringResource(R.string.filter_archived)
+                                            PersonStatus.SETTLED -> stringResource(R.string.filter_settled)
                                             else -> stringResource(R.string.filter_all)
                                         }
                                     )

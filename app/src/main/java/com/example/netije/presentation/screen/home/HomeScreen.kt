@@ -228,7 +228,7 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                             label = when (state.status) {
                                 PersonStatus.ACTIVE -> stringResource(R.string.filter_active)
                                 PersonStatus.ARCHIVED -> stringResource(R.string.filter_archived)
-                                PersonStatus.SETTLED -> stringResource(R.string.settled_filter)
+                                PersonStatus.SETTLED -> stringResource(R.string.filter_settled)
                                 null -> stringResource(R.string.filter_all)
                             },
                             selected = true,
@@ -245,7 +245,7 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                                             when (opt) {
                                                 PersonStatus.ACTIVE -> stringResource(R.string.filter_active)
                                                 PersonStatus.ARCHIVED -> stringResource(R.string.filter_archived)
-                                                PersonStatus.SETTLED -> stringResource(R.string.settled_filter)
+                                                PersonStatus.SETTLED -> stringResource(R.string.filter_settled)
                                                 else -> stringResource(R.string.filter_all)
                                             }
                                         )
@@ -365,7 +365,7 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                     val statusRes = when (lp.person.status) {
                         PersonStatus.ACTIVE -> R.string.filter_active
                         PersonStatus.ARCHIVED -> R.string.filter_archived
-                        PersonStatus.SETTLED -> R.string.settled_filter
+                        PersonStatus.SETTLED -> R.string.filter_settled
                     }
                     Text(stringResource(statusRes))
                     Spacer(Modifier.height(8.dp))
@@ -399,7 +399,7 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(stringResource(R.string.settled_filter), color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.filter_settled), color = MaterialTheme.colorScheme.primary)
                     }
                     Spacer(Modifier.height(6.dp))
                     TextButton(

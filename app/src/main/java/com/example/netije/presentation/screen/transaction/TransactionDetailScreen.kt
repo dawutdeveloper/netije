@@ -299,7 +299,7 @@ fun TransactionDetailScreen(
                                             onClick = {},
                                             label = {
                                                 Text(
-                                                    stringResource(R.string.settled_filter),
+                                                    stringResource(R.string.filter_settled),
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.SemiBold
                                                 )

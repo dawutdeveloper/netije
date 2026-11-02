@@ -35,7 +35,7 @@ fun Context.wrapWithLocale(language: AppLanguage): Context {
 /**
  * ⭐ RECOMMENDED for Compose reactive language switching.
  *
- * Updates the Activity's resources Configuration IN PLACE so that:
+ * Updates the Activity's resources Configuration in place so that:
  *   1. LocalContext.current in Compose is STILL the Activity instance
  *      → Hilt finds ViewModelStoreOwner / HasDefaultViewModelProviderFactory ✅
  *   2. Resources.getString() / stringResource() return correct locale strings ✅
@@ -60,10 +60,8 @@ fun Activity.updateActivityLocale(language: AppLanguage) {
     @Suppress("DEPRECATION")
     resources.updateConfiguration(config, resources.displayMetrics)
 
-    // Also apply to the Activity's base ConfigurationWindow frame for good measure.
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
-        applyOverrideConfiguration(config)
-    }
+    // applyOverrideConfiguration cannot be called after this Activity's resources
+    // have been read. The Compose configuration is updated by the caller instead.
 }
 
 private fun Configuration.setLayoutDirection(locale: Locale) {

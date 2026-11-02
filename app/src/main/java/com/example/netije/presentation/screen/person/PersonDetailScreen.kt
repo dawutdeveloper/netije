@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,11 +26,11 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -265,29 +266,36 @@ fun PersonDetailScreen(
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(Modifier.height(12.dp))
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            AssistChip(
+                        Text(stringResource(R.string.person_status), style = MaterialTheme.typography.labelLarge)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = person?.status == PersonStatus.ACTIVE,
+                                enabled = person != null,
                                 onClick = { vm.setStatus(PersonStatus.ACTIVE) },
                                 label = { Text(stringResource(R.string.filter_active)) },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = if (person?.status == PersonStatus.ACTIVE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                                    labelColor = if (person?.status == PersonStatus.ACTIVE) Color.White else MaterialTheme.colorScheme.onSurface
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = Color.White
                                 )
                             )
-                            AssistChip(
+                            FilterChip(
+                                selected = person?.status == PersonStatus.ARCHIVED,
+                                enabled = person != null,
                                 onClick = { vm.setStatus(PersonStatus.ARCHIVED) },
                                 label = { Text(stringResource(R.string.filter_archived)) },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = if (person?.status == PersonStatus.ARCHIVED) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                                    labelColor = if (person?.status == PersonStatus.ARCHIVED) Color.White else MaterialTheme.colorScheme.onSurface
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                    selectedLabelColor = Color.White
                                 )
                             )
-                            AssistChip(
+                            FilterChip(
+                                selected = person?.status == PersonStatus.SETTLED,
+                                enabled = person != null,
                                 onClick = { vm.setStatus(PersonStatus.SETTLED) },
-                                label = { Text(stringResource(R.string.settled_filter)) },
-                                colors = AssistChipDefaults.assistChipColors(
-                                    containerColor = if (person?.status == PersonStatus.SETTLED) PositiveGreen else MaterialTheme.colorScheme.surface,
-                                    labelColor = if (person?.status == PersonStatus.SETTLED) Color.White else MaterialTheme.colorScheme.onSurface
+                                label = { Text(stringResource(R.string.filter_settled)) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = PositiveGreen,
+                                    selectedLabelColor = Color.White
                                 )
                             )
                         }

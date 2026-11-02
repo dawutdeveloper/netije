@@ -26,6 +26,7 @@ data class PersonEntity(
     val contactLookupUri: String? = null,
     val isImportant: Boolean = false,
     val status: String = "ACTIVE",
+    @androidx.room.ColumnInfo(defaultValue = "0") val statusPending: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis()
 )

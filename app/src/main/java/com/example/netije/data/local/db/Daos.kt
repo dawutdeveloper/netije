@@ -52,8 +52,26 @@ interface PersonDao {
     @Query("DELETE FROM persons WHERE id = :id")
     suspend fun deleteById(id: String)
 
-    @Query("UPDATE persons SET status = :status, updatedAt = :now WHERE id = :id")
+    @Query("UPDATE persons SET status = :status, statusPending = 1, updatedAt = :now WHERE id = :id")
     suspend fun setStatus(id: String, status: String, now: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM persons WHERE statusPending = 1")
+    suspend fun getPendingStatuses(): List<PersonEntity>
+
+    @Query("UPDATE persons SET statusPending = 0 WHERE id = :id AND status = :status AND updatedAt = :updatedAt")
+    suspend fun acknowledgeStatus(id: String, status: String, updatedAt: Long)
+
+    @androidx.room.Transaction
+    suspend fun upsertRemoteAll(persons: List<PersonEntity>) {
+        persons.forEach { remote ->
+            val local = getById(remote.id)
+            upsert(if (local?.statusPending == true) remote.copy(
+                status = local.status,
+                updatedAt = local.updatedAt,
+                statusPending = true
+            ) else remote)
+        }
+    }
 
     @Query("DELETE FROM persons")
     suspend fun clear()

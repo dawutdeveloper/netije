@@ -225,4 +225,7 @@
     <string name="transaction_amount_change">%1$s → %2$s TMT</string>
     <string name="transaction_change_difference">Change: %1$s TMT</string>
     <string name="transaction_type_change">%1$s → %2$s</string>
+    <string name="person_status">Status</string>
+    <string name="report_date_from">From %1$s</string>
+    <string name="report_date_to">To %1$s</string>
 </resources>

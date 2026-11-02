@@ -17,10 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -56,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.netije.R
+import com.example.netije.presentation.component.ReportDateRange
 import com.example.netije.domain.model.TransactionType
 import com.example.netije.presentation.component.AmountText
 import com.example.netije.presentation.component.BalanceAmountText
@@ -197,23 +195,12 @@ fun ReportTransactionsScreen(
                             }
                         }
                         Spacer(Modifier.height(10.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            AssistChip(
-                                onClick = { showDatePicker(true) },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                                label = { Text(stringResource(R.string.from_date) + " ${df.format(Date(state.fromDate))}") },
-                                colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, labelColor = MaterialTheme.colorScheme.onSurface)
-                            )
-                            AssistChip(
-                                onClick = { showDatePicker(false) },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                                label = { Text(stringResource(R.string.to_date) + " ${df.format(Date(state.toDate))}") },
-                                colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, labelColor = MaterialTheme.colorScheme.onSurface)
-                            )
-                        }
+                        ReportDateRange(
+                            from = state.fromDate,
+                            to = state.toDate,
+                            onFromClick = { showDatePicker(true) },
+                            onToClick = { showDatePicker(false) }
+                        )
                         Spacer(Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             NetijeFilterChip(stringResource(R.string.filter_all), true, { vm.setType(null) })

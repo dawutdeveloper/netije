@@ -16,10 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -43,7 +40,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -52,16 +48,14 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.netije.R
+import com.example.netije.presentation.component.ReportDateRange
 import com.example.netije.presentation.component.AmountText
 import com.example.netije.presentation.component.BalanceAmountText
 import com.example.netije.presentation.component.NetijeAvatar
 import com.example.netije.presentation.util.ReportFormat
 import com.example.netije.presentation.viewmodel.ReportSummaryViewModel
 import com.example.netije.ui.theme.PrimaryBlue
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,8 +67,6 @@ fun ReportSummaryScreen(
     val state by vm.state.collectAsState()
     val settings by settingsVm.state.collectAsState()
     val ctx = LocalContext.current
-    val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
-    val df = remember(locale) { SimpleDateFormat("dd MMM yyyy", locale) }
     val currency = settings.settings.currencyCode
 
     fun showDatePicker(isFrom: Boolean) {
@@ -150,21 +142,12 @@ fun ReportSummaryScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            AssistChip(
-                                onClick = { showDatePicker(true) },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                                label = { Text(stringResource(R.string.from_date) + " ${df.format(Date(state.fromDate))}") },
-                                colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, labelColor = MaterialTheme.colorScheme.onSurface)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            AssistChip(
-                                onClick = { showDatePicker(false) },
-                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                                label = { Text(stringResource(R.string.to_date) + " ${df.format(Date(state.toDate))}") },
-                                colors = AssistChipDefaults.assistChipColors(containerColor = MaterialTheme.colorScheme.surfaceVariant, labelColor = MaterialTheme.colorScheme.onSurface)
-                            )
-                        }
+                        ReportDateRange(
+                            from = state.fromDate,
+                            to = state.toDate,
+                            onFromClick = { showDatePicker(true) },
+                            onToClick = { showDatePicker(false) }
+                        )
                         Spacer(Modifier.height(14.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(Modifier.height(10.dp))

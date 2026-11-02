@@ -265,7 +265,7 @@ fun CalendarScreen(
                     val statusRes = when (lp.status) {
                         PersonStatus.ACTIVE -> R.string.filter_active
                         PersonStatus.ARCHIVED -> R.string.filter_archived
-                        PersonStatus.SETTLED -> R.string.settled_filter
+                        PersonStatus.SETTLED -> R.string.filter_settled
                     }
                     Text(stringResource(statusRes))
                     Spacer(Modifier.height(8.dp))
@@ -299,7 +299,7 @@ fun CalendarScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text(stringResource(R.string.settled_filter), color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.filter_settled), color = MaterialTheme.colorScheme.primary)
                     }
                     Spacer(Modifier.height(6.dp))
                     TextButton(

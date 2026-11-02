@@ -214,14 +214,18 @@ private fun NetijeAppContent(
 
     // ===== SAFE LOCALE SWITCHING =====
     val desiredLang: AppLanguage = settingsState.settings.language
+    val baseConfiguration = LocalConfiguration.current
+    var appliedLanguage by remember {
+        mutableStateOf(AppLanguage.fromCode(context.resources.configuration.locales[0].language))
+    }
 
     // ⭐ SIDE EFFECTS ONLY IN LaunchedEffect (never during composition snapshot)
-    // updateActivityLocale mutates resources.updateConfiguration + applyOverrideConfiguration on
-    // the Activity in-place, so all Resources.getString() / stringResource() pick up the new
-    // locale on next recomposition.
+    // Apply the Activity resources before publishing the matching Compose configuration,
+    // so stringResource reads the new language on the resulting recomposition.
     LaunchedEffect(desiredLang) {
         val act = context.findActivity() ?: activity
         runCatching { act.updateActivityLocale(desiredLang) }
+            .onSuccess { appliedLanguage = desiredLang }
             .onFailure { t -> Log.w(TAG, "Locale apply failed", t) }
     }
 
@@ -232,9 +236,9 @@ private fun NetijeAppContent(
     // HasDefaultViewModelProviderFactory (i.e., ComponentActivity). Keeping LocalContext as the
     // ORIGINAL Activity instance preserves the Hilt/DI graph while still forcing stringResource
     // and date formatters to read the refreshed Locale via LocalConfiguration.
-    val refreshedConfig = remember(desiredLang) {
-        Configuration().also { c ->
-            val l = Locale(desiredLang.code)
+    val refreshedConfig = remember(appliedLanguage, baseConfiguration) {
+        Configuration(baseConfiguration).also { c ->
+            val l = Locale(appliedLanguage.code)
             Locale.setDefault(l)
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
                 c.setLocales(android.os.LocaleList(l))

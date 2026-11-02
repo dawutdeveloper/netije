@@ -148,7 +148,7 @@
     <string name="signin_hint">Войдите через Google</string>
 
     <string name="home_empty">Нет данных. Нажмите +, чтобы добавить пользователя</string>
-    <string name="settled_filter">Закрытые</string>
+    <string name="settled_filter">@string/filter_settled</string>
 
     <string name="photo_take">Сделать фото</string>
     <string name="photo_gallery">Выбрать из галереи</string>
@@ -227,4 +227,7 @@
     <string name="transaction_amount_change">%1$s → %2$s TMT</string>
     <string name="transaction_change_difference">Изменение: %1$s TMT</string>
     <string name="transaction_type_change">%1$s → %2$s</string>
+    <string name="person_status">Статус</string>
+    <string name="report_date_from">С %1$s</string>
+    <string name="report_date_to">По %1$s</string>
 </resources>

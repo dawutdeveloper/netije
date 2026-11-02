@@ -43,6 +43,9 @@ import kotlinx.coroutines.flow.map
 import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 private suspend fun TransactionDto.toLocalEntity(dao: TransactionDao): TransactionEntity {
     val local = id?.let { dao.getById(it)?.toDomain() }
@@ -106,7 +109,7 @@ class AuthRepositoryImpl @Inject constructor(
             val res = syncApi.sync(payload)
             val body = if (res.isSuccessful) res.body() else null
             if (body != null) {
-                personDao.upsertAll(body.persons.map { it.toDomain().toEntity() })
+                personDao.upsertRemoteAll(body.persons.map { it.toDomain().toEntity() })
                 transactionDao.upsertAll(body.transactions.map { it.toLocalEntity(transactionDao) })
             }
         } catch (_: Exception) { }
@@ -119,6 +122,28 @@ class PersonRepositoryImpl @Inject constructor(
     private val personsApi: PersonsApi,
     private val transactionDao: TransactionDao
 ) : PersonRepository {
+    private val statusSyncMutex = Mutex()
+
+    private suspend fun uploadPerson(person: PersonEntity): Boolean {
+        val dto = PersonDto.fromDomain(person.toDomain())
+        val updated = personsApi.update(person.id, dto)
+        val response = if (updated.code() == 404) personsApi.create(dto) else updated
+        if (!response.isSuccessful) return false
+        personDao.acknowledgeStatus(person.id, person.status, person.updatedAt)
+        return true
+    }
+
+    private suspend fun syncPendingStatus(id: String) = statusSyncMutex.withLock {
+        val person = personDao.getById(id) ?: return@withLock
+        if (!person.statusPending) return@withLock
+        try {
+            uploadPerson(person)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Keep the local selection pending for the next refresh.
+        }
+    }
 
     override fun observePersons(status: PersonStatus?, search: String?): Flow<List<Person>> {
         val flow = when {
@@ -155,13 +180,15 @@ class PersonRepositoryImpl @Inject constructor(
     override suspend fun getPerson(id: String): Person? = personDao.getById(id)?.toDomain()
 
     override suspend fun upsertPerson(person: Person): String {
-        personDao.upsert(person.toEntity())
+        val existing = personDao.getById(person.id)
+        val local = person.toEntity().let {
+            if (existing?.statusPending == true) it.copy(status = existing.status, statusPending = true) else it
+        }
+        personDao.upsert(local)
         try {
-            if (personsApi.getById(person.id).isSuccessful) {
-                personsApi.update(person.id, PersonDto.fromDomain(person))
-            } else {
-                personsApi.create(PersonDto.fromDomain(person))
-            }
+            statusSyncMutex.withLock { personDao.getById(person.id)?.let { uploadPerson(it) } }
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) { }
         return person.id
     }
@@ -174,19 +201,19 @@ class PersonRepositoryImpl @Inject constructor(
 
     override suspend fun setPersonStatus(id: String, status: PersonStatus) {
         personDao.setStatus(id, status.name)
-        try {
-            val p = personDao.getById(id)?.toDomain() ?: return
-            personsApi.update(id, PersonDto.fromDomain(p.copy(status = status)))
-        } catch (_: Exception) { }
+        syncPendingStatus(id)
     }
 
     override suspend fun refreshFromRemote() {
         try {
+            personDao.getPendingStatuses().forEach { syncPendingStatus(it.id) }
             val res = personsApi.getAll()
             val body = if (res.isSuccessful) res.body() else null
             if (body != null) {
-                personDao.upsertAll(body.map { it.toDomain().toEntity() })
+                personDao.upsertRemoteAll(body.map { it.toDomain().toEntity() })
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (_: Exception) { }
     }
 }
