@@ -42,6 +42,8 @@ data class TransactionEntity(
     val note: String? = null,
     val attachments: String = "",
     @androidx.room.ColumnInfo(defaultValue = "'[]'") val changes: String = "[]",
+    @androidx.room.ColumnInfo(defaultValue = "'ACTIVE'") val status: String = "ACTIVE",
+    @androidx.room.ColumnInfo(defaultValue = "0") val statusPending: Boolean = false,
     val date: Long,
     val time: Long,
     val createdAt: Long = System.currentTimeMillis(),

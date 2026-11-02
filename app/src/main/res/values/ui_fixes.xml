@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_back">Назад</string>
+    <string name="expand_transactions">Развернуть операции</string>
+    <string name="collapse_transactions">Свернуть операции</string>
+    <string name="expand_calendar">Развернуть календарь</string>
+    <string name="collapse_calendar">Свернуть календарь</string>
+    <string name="add_person_accessibility">Добавить контакт</string>
+    <string name="add_transaction_accessibility">Добавить операцию</string>
+    <string name="transaction_status_change">Переместить операцию</string>
+    <string name="transaction_status_hint">Выберите статус этой операции. Другие операции и контакт не изменятся.</string>
+    <string name="save_failed">Не удалось сохранить. Повторите попытку.</string>
+    <string name="validation_name">Введите имя.</string>
+    <string name="validation_contact">Выберите контакт.</string>
+    <string name="validation_amount">Введите положительную сумму с точностью до двух знаков. Проверьте разделители во вставленной сумме.</string>
+    <string name="edit_person_title">Изменить контакт</string>
+    <string name="edit_transaction_title">Изменить операцию</string>
+    <string name="backup_import">Импортировать копию</string>
+    <string name="backup_import_title">Импортировать сохранённую копию?</string>
+    <string name="backup_import_explanation">Записи будут объединены по ID. Более новые записи на этом телефоне сохранятся; существующие данные не удаляются. Перед импортом создаётся восстановительная копия.</string>
+    <string name="backup_import_success">Импорт завершён: добавлено или обновлено записей: %1$d.</string>
+    <string name="backup_import_failed">Не удалось импортировать копию. Проверьте, что это корректная копия Netije. Существующие записи сохранены.</string>
+    <string name="backup_export_file">Сохранить копию в файл</string>
+    <string name="backup_export_success">Копия сохранена. Перенесите файл на другой телефон и выберите «Импортировать копию».</string>
+    <string name="backup_transfer_hint">Сохраните копию в файл для переноса записей, фото и вложений на другой телефон. Старые копии восстанавливают только содержащиеся в них файлы.</string>
+    <string name="backup_schedule_saved">Копия сохранена, автоматическое копирование настроено. Android может задерживать фоновые копии. Для переноса на другой телефон сохраните копию отдельно в файл.</string>
+    <string name="backup_auto_schedule">Автоматические копии</string>
+    <string name="backup_local_files">Копии на этом телефоне</string>
+    <string name="backup_no_files">На этом телефоне ещё нет сохранённых копий.</string>
+    <string name="backup_missing_files">Недоступных файлов: %1$d. Их не удалось включить в копию. Записи сохранены. Сохраните оригиналы файлов, если они у вас остались.</string>
+</resources>

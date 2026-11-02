@@ -12,6 +12,7 @@ data class UserDto(
     val displayName: String,
     val email: String,
     val photoUrl: String? = null,
+    @field:com.google.gson.annotations.JsonAdapter(EpochMillisAdapter::class)
     val createdAt: Long = System.currentTimeMillis()
 ) {
     fun toDomain(
@@ -44,7 +45,9 @@ data class PersonDto(
     val contactLookupUri: String? = null,
     val isImportant: Boolean = false,
     val status: String = "ACTIVE",
+    @field:com.google.gson.annotations.JsonAdapter(EpochMillisAdapter::class)
     val createdAt: Long = System.currentTimeMillis(),
+    @field:com.google.gson.annotations.JsonAdapter(EpochMillisAdapter::class)
     val updatedAt: Long = System.currentTimeMillis()
 ) {
     fun toDomain(): Person = Person(
@@ -89,10 +92,13 @@ data class TransactionDto(
     val purpose: String? = null,
     val note: String? = null,
     val attachments: List<String> = emptyList(),
+    val status: String? = null,
     val changes: List<com.example.netije.domain.model.TransactionChange>? = null,
     val date: Long,
     val time: Long,
+    @field:com.google.gson.annotations.JsonAdapter(EpochMillisAdapter::class)
     val createdAt: Long = System.currentTimeMillis(),
+    @field:com.google.gson.annotations.JsonAdapter(EpochMillisAdapter::class)
     val updatedAt: Long = System.currentTimeMillis()
 ) {
     fun toDomain(): Transaction = Transaction(
@@ -104,6 +110,7 @@ data class TransactionDto(
         purpose = purpose,
         note = note,
         attachments = attachments,
+        status = com.example.netije.domain.model.TransactionStatus.fromString(status),
         changes = changes.orEmpty(),
         date = date,
         time = time,
@@ -121,6 +128,7 @@ data class TransactionDto(
             purpose = t.purpose,
             note = t.note,
             attachments = t.attachments,
+            status = t.status.name,
             changes = t.changes,
             date = t.date,
             time = t.time,

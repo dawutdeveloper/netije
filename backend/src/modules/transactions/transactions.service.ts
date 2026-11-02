@@ -20,7 +20,8 @@ export class TransactionsService {
     if (dto.changes == null && (current.amount !== dto.amount || current.type !== dto.type)) {
       const change = {
         id: uuid(), previousAmount: current.amount, amount: dto.amount,
-        previousType: current.type, type: dto.type, changedAt: Date.now(),
+        previousType: current.type, type: dto.type,
+      status: dto.status ?? 'ACTIVE', changedAt: Date.now(),
       };
       changes.set(change.id, change);
     }
@@ -50,6 +51,7 @@ export class TransactionsService {
       ownerId: owner.id,
       personId: dto.personId,
       type: dto.type,
+      status: dto.status ?? 'ACTIVE',
       amount: dto.amount,
       currency: 'TMT',
       purpose: dto.purpose,
@@ -67,6 +69,7 @@ export class TransactionsService {
     Object.assign(t, {
       personId: dto.personId ?? t.personId,
       type: dto.type ?? t.type,
+      status: dto.status ?? t.status,
       amount: dto.amount ?? t.amount,
       currency: 'TMT',
       purpose: dto.purpose ?? t.purpose,
@@ -111,6 +114,7 @@ export class TransactionsService {
         Object.assign(existing, {
           personId: d.personId ?? existing.personId,
           type: d.type ?? existing.type,
+          status: d.status ?? existing.status,
           amount: d.amount ?? existing.amount,
           currency: 'TMT',
           purpose: d.purpose ?? existing.purpose,
@@ -129,6 +133,7 @@ export class TransactionsService {
               ownerId: owner.id,
               personId: d.personId,
               type: d.type,
+              status: d.status ?? 'ACTIVE',
               amount: d.amount,
               currency: 'TMT',
               purpose: d.purpose,

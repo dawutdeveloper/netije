@@ -86,6 +86,7 @@ class SaveTransactionUseCase @Inject constructor(private val repo: TransactionRe
         return repo.upsertTransaction(transaction.copy(
             id = id,
             currency = "TMT",
+            status = existing?.status ?: transaction.status,
             createdAt = existing?.createdAt ?: transaction.createdAt,
             updatedAt = now,
             changes = changes

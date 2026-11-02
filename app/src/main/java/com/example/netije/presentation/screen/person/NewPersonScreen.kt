@@ -83,6 +83,26 @@ fun NewPersonScreen(nav: NavController, vm: NewPersonViewModel = hiltViewModel()
     val customAvatarUrl by vm.customAvatarUrl.collectAsState()
     val scope = rememberCoroutineScope()
     val ctx = LocalContext.current
+    val saving by vm.saving.collectAsState()
+    val ready by vm.ready.collectAsState()
+    var importingPhoto by remember { mutableStateOf(false) }
+    var submitted by remember { mutableStateOf(false) }
+    var saveFailed by remember { mutableStateOf(false) }
+
+
+    fun importPhoto(uri: Uri) {
+        importingPhoto = true
+        scope.launch {
+            try {
+                vm.customAvatarUrl.value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.example.netije.presentation.util.TransactionAttachments.import(ctx, uri)
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { android.widget.Toast.makeText(ctx, ctx.getString(R.string.attachment_import_failed), android.widget.Toast.LENGTH_LONG).show() }
+            finally { importingPhoto = false }
+        }
+    }
+
 
     val sheetState = rememberModalBottomSheetState()
     var showBottomSheet by remember { mutableStateOf(false) }
@@ -94,8 +114,7 @@ fun NewPersonScreen(nav: NavController, vm: NewPersonViewModel = hiltViewModel()
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            takePersistableReadPermission(ctx, it)
-            vm.customAvatarUrl.value = it.toString()
+            importPhoto(it)
         }
     }
 
@@ -106,7 +125,7 @@ fun NewPersonScreen(nav: NavController, vm: NewPersonViewModel = hiltViewModel()
     //    - falls back to TakePicturePreview if file-backed launch fails
     // ══════════════════════════════════════════════════════════════════════
     val (cameraLauncher, _) = rememberCameraCaptureLauncher(
-        onImageSaved = { uri -> vm.customAvatarUrl.value = uri.toString() },
+        onImageSaved = { uri -> importPhoto(uri) },
         onFailed = { /* user cancelled or no camera app — silent */ }
     )
 
@@ -115,7 +134,7 @@ fun NewPersonScreen(nav: NavController, vm: NewPersonViewModel = hiltViewModel()
             TopAppBar(
                 title = {
                     Text(
-                        stringResource(R.string.new_person_title),
+                        stringResource(if (vm.editingPersonId != null) R.string.edit_person_title else R.string.new_person_title),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -124,7 +143,7 @@ fun NewPersonScreen(nav: NavController, vm: NewPersonViewModel = hiltViewModel()
                 navigationIcon = {
                     IconButton(onClick = { nav.popBackStack() }) {
                         Icon(
-                            Icons.Default.ArrowBack, null,
+                            Icons.Default.ArrowBack, contentDescription = stringResource(R.string.nav_back),
                             tint = MaterialTheme.colorScheme.onBackground,
                             modifier = Modifier.size(30.dp)
                         )
@@ -215,6 +234,10 @@ fun NewPersonScreen(nav: NavController, vm: NewPersonViewModel = hiltViewModel()
                         onValueChange = { vm.name.value = it }
                     )
                     Spacer(Modifier.height(16.dp))
+                }
+                item {
+                    if (submitted && name.isBlank()) Text(stringResource(R.string.validation_name), color = MaterialTheme.colorScheme.error)
+                    if (saveFailed) Text(stringResource(R.string.save_failed), color = MaterialTheme.colorScheme.error)
                 }
                 item { FormField(label = stringResource(R.string.person_phone)) }
                 itemsIndexed(phones) { i, phone ->
@@ -356,10 +379,20 @@ fun NewPersonScreen(nav: NavController, vm: NewPersonViewModel = hiltViewModel()
                     .padding(horizontal = 18.dp, vertical = 18.dp)
             ) {
                 Button(
+                    enabled = ready && !saving && !importingPhoto,
                     onClick = {
                         scope.launch {
-                            val id = vm.save()
-                            if (id != null) nav.popBackStack()
+                            submitted = true
+                            if (name.isBlank()) {
+                                android.widget.Toast.makeText(ctx, ctx.getString(R.string.validation_name), android.widget.Toast.LENGTH_LONG).show()
+                                return@launch
+                            }
+                            saveFailed = false
+                            try {
+                                val id = vm.save()
+                                if (id != null) nav.popBackStack()
+                            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                            catch (_: Exception) { saveFailed = true; android.widget.Toast.makeText(ctx, ctx.getString(R.string.save_failed), android.widget.Toast.LENGTH_LONG).show() }
                         }
                     },
                     modifier = Modifier

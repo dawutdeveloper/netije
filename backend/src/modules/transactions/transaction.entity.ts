@@ -25,6 +25,7 @@ export class Transaction {
   @ManyToOne(() => User, { onDelete: 'CASCADE' }) owner: User;
 
   @Column({ type: 'varchar', length: 16 }) type: 'RECEIVED' | 'ISSUED';
+  @Column({ default: 'ACTIVE' }) status: 'ACTIVE' | 'ARCHIVED' | 'SETTLED';
   @Column({ type: 'double precision' }) amount: number;
   @Column({ default: 'TMT' }) currency: string;
 

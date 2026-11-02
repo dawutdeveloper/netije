@@ -127,6 +127,77 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
     }
 
     var showBackupDialog by remember { mutableStateOf(false) }
+    var backupBusy by remember { mutableStateOf(false) }
+    var pendingImport by remember { mutableStateOf<android.net.Uri?>(null) }
+    var backupMessage by remember { mutableStateOf<String?>(null) }
+    var localBackups by remember { mutableStateOf<List<File>?>(null) }
+    localBackups?.let { files ->
+        AlertDialog(onDismissRequest = { localBackups = null }, title = { Text(stringResource(R.string.backup_local_files)) },
+            text = {
+                if (files.isEmpty()) Text(stringResource(R.string.backup_no_files))
+                else LazyColumn(modifier = Modifier.height(300.dp)) {
+                    items(files.size) { index ->
+                        val file = files[index]
+                        TextButton(onClick = { localBackups = null; pendingImport = android.net.Uri.fromFile(file) }) {
+                            Text(file.name)
+                        }
+                    }
+                }
+            }, confirmButton = { TextButton(onClick = { localBackups = null }) { Text(stringResource(R.string.cancel)) } })
+    }
+
+    val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) {
+            backupBusy = true
+            scope.launch {
+                try {
+                    val json = vm.export()
+                    withContext(Dispatchers.IO) {
+                        ctx.contentResolver.openOutputStream(uri, "wt")?.bufferedWriter()?.use { it.write(json) }
+                            ?: error("Unable to write backup")
+                    }
+                    vm.markBackupTakenNow()
+                    backupMessage = ctx.getString(R.string.backup_export_success)
+                    val missing = com.example.netije.data.backup.BackupCodec.decode(json).missingFiles.size
+                    if (missing > 0) backupMessage += "\n" + ctx.getString(R.string.backup_missing_files, missing)
+                } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                catch (_: Exception) { backupMessage = ctx.getString(R.string.toast_export_error) }
+                finally { backupBusy = false }
+            }
+        }
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> pendingImport = uri }
+    if (pendingImport != null) {
+        AlertDialog(onDismissRequest = { if (!backupBusy) pendingImport = null },
+            title = { Text(stringResource(R.string.backup_import_title)) },
+            text = { Text(stringResource(R.string.backup_import_explanation)) },
+            confirmButton = { TextButton(enabled = !backupBusy, onClick = {
+                val uri = pendingImport ?: return@TextButton
+                backupBusy = true
+                scope.launch {
+                    try {
+                        val json = withContext(Dispatchers.IO) {
+                            ctx.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                                ?: error("Unable to read backup")
+                        }
+                        val count = vm.import(json)
+                        pendingImport = null
+                        backupMessage = ctx.getString(R.string.backup_import_success, count)
+                        val document = com.example.netije.data.backup.BackupCodec.decode(json)
+                        if (document.missingFiles.isNotEmpty()) backupMessage += "\n" + ctx.getString(R.string.backup_missing_files, document.missingFiles.size)
+                    } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                    catch (_: Exception) { pendingImport = null; backupMessage = ctx.getString(R.string.backup_import_failed) }
+                    finally { backupBusy = false }
+                }
+            }) { Text(stringResource(R.string.backup_import)) } },
+            dismissButton = { TextButton(enabled = !backupBusy, onClick = { pendingImport = null }) { Text(stringResource(R.string.cancel)) } }
+        )
+    }
+    backupMessage?.let { message ->
+        AlertDialog(onDismissRequest = { backupMessage = null }, title = { Text(stringResource(R.string.section_backup)) },
+            text = { Text(message) }, confirmButton = { TextButton(onClick = { backupMessage = null }) { Text(stringResource(android.R.string.ok)) } })
+    }
+
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -137,7 +208,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                     IconButton(onClick = { nav.popBackStack() }) {
                         Icon(
                             Icons.Default.ArrowBack,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.nav_back),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -367,6 +438,26 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                 }
                 item {
                     SectionHeader(stringResource(R.string.section_backup))
+                    Text(stringResource(R.string.backup_transfer_hint), style = MaterialTheme.typography.bodyMedium)
+                    TextButton(enabled = !backupBusy, onClick = { exportLauncher.launch("netije_backup_${System.currentTimeMillis()}.json") }) {
+                        Text(stringResource(R.string.backup_export_file))
+                    }
+                    TextButton(enabled = !backupBusy, onClick = { importLauncher.launch(arrayOf("application/json", "text/*", "application/octet-stream")) }) {
+                        Text(stringResource(R.string.backup_import))
+                    }
+                    TextButton(enabled = !backupBusy, onClick = {
+                        scope.launch {
+                            localBackups = withContext(Dispatchers.IO) {
+                                val directories = listOf(
+                                    File(ctx.getExternalFilesDir(null) ?: ctx.filesDir, "Netije/backups"),
+                                    File(ctx.filesDir, "backups")
+                                )
+                                directories.flatMap { it.listFiles()?.toList().orEmpty() }
+                                    .filter { it.isFile && it.extension == "json" }.sortedByDescending { it.lastModified() }
+                            }
+                        }
+                    }) { Text(stringResource(R.string.backup_local_files)) }
+                    if (backupBusy) androidx.compose.material3.LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(8.dp))
                     Card(
                         shape = RoundedCornerShape(20.dp),
@@ -388,7 +479,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(18.dp)
-                                    .clickableNoRipple { showBackupDialog = true },
+                                    .clickableNoRipple { if (!backupBusy) showBackupDialog = true },
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Box(
@@ -408,7 +499,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                                 Spacer(Modifier.width(14.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = stringResource(R.string.settings_backup_export),
+                                        text = stringResource(R.string.backup_auto_schedule),
                                         style = MaterialTheme.typography.titleMedium,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -436,37 +527,24 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                 currentUnit = state.settings.backupUnit,
                 onDismiss = { showBackupDialog = false },
                 onConfirm = { number, unit ->
+                    backupBusy = true
                     scope.launch {
-                        val millis = backupMillis(number, unit)
-                        val next = if (millis != null) System.currentTimeMillis() + millis else null
-                        vm.onBackupFrequency(number, unit, next)
-                        val json = runCatching { vm.export() }.getOrElse { "" }
-                        val savedPath = if (json.isNotBlank()) {
+                        try {
+                            val millis = backupMillis(number, unit)
+                            vm.onBackupFrequency(number, unit, millis?.let { System.currentTimeMillis() + it }).join()
+                            val json = vm.export()
                             withContext(Dispatchers.IO) {
-                                runCatching {
-                                    val baseDir = File(
-                                        ctx.getExternalFilesDir(null),
-                                        "Netije${File.separator}backups"
-                                    )
-                                    baseDir.mkdirs()
-                                    val stamp = SimpleDateFormat(
-                                        "yyyyMMdd_HHmmss",
-                                        Locale.US
-                                    ).format(Date())
-                                    val file = File(baseDir, "netije_backup_$stamp.json")
-                                    file.writeText(json)
-                                    vm.markBackupTakenNow()
-                                    file.absolutePath
-                                }.getOrNull()
+                                val directory = File(ctx.getExternalFilesDir(null) ?: ctx.filesDir, "Netije/backups")
+                                check(directory.isDirectory || directory.mkdirs())
+                                File(directory, "netije_backup_${System.currentTimeMillis()}.json").writeText(json)
                             }
-                        } else null
-                        val msg = if (savedPath != null) {
-                            String.format(
-                                ctx.getString(R.string.backup_saved_to),
-                                savedPath
-                            )
-                        } else ctx.getString(R.string.toast_export_error)
-                        Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
+                            vm.markBackupTakenNow()
+                            backupMessage = ctx.getString(R.string.backup_schedule_saved)
+                            val missing = com.example.netije.data.backup.BackupCodec.decode(json).missingFiles.size
+                            if (missing > 0) backupMessage += "\n" + ctx.getString(R.string.backup_missing_files, missing)
+                        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                        catch (_: Exception) { backupMessage = ctx.getString(R.string.toast_export_error) }
+                        finally { backupBusy = false }
                     }
                     showBackupDialog = false
                 }

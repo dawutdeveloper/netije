@@ -11,6 +11,15 @@ enum class TransactionType {
     }
 }
 
+enum class TransactionStatus {
+    ACTIVE, ARCHIVED, SETTLED;
+
+    companion object {
+        fun fromString(value: String?) = entries.firstOrNull { it.name == value } ?: ACTIVE
+    }
+}
+
+// Retained for compatibility with older backups and servers. Status UI belongs to transactions.
 enum class PersonStatus {
     ACTIVE,
     ARCHIVED,
@@ -98,7 +107,8 @@ data class Transaction(
     val time: Long,
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
-    val changes: List<TransactionChange> = emptyList()
+    val changes: List<TransactionChange> = emptyList(),
+    val status: TransactionStatus = TransactionStatus.ACTIVE
 )
 
 data class PersonWithTransactions(

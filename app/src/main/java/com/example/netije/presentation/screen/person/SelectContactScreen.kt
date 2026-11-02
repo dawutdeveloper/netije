@@ -91,7 +91,7 @@ fun SelectContactScreen(
                 navigationIcon = {
                     IconButton(onClick = { nav.popBackStack() }) {
                         Icon(
-                            Icons.Default.ArrowBack, null,
+                            Icons.Default.ArrowBack, contentDescription = stringResource(R.string.nav_back),
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(30.dp)
                         )
@@ -117,42 +117,6 @@ fun SelectContactScreen(
         ) {
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box {
-                    NetijeFilterChip(
-                        label = when (status) {
-                            PersonStatus.ACTIVE -> stringResource(R.string.filter_active)
-                            PersonStatus.ARCHIVED -> stringResource(R.string.filter_archived)
-                            PersonStatus.SETTLED -> stringResource(R.string.filter_settled)
-                            null -> stringResource(R.string.filter_all)
-                        },
-                        selected = true,
-                        onClick = { filterExpanded = true }
-                    )
-                    DropdownMenu(
-                        expanded = filterExpanded,
-                        onDismissRequest = { filterExpanded = false }
-                    ) {
-                        listOf(PersonStatus.ACTIVE, PersonStatus.ARCHIVED, PersonStatus.SETTLED, null).forEach { opt ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        when (opt) {
-                                            PersonStatus.ACTIVE -> stringResource(R.string.filter_active)
-                                            PersonStatus.ARCHIVED -> stringResource(R.string.filter_archived)
-                                            PersonStatus.SETTLED -> stringResource(R.string.filter_settled)
-                                            else -> stringResource(R.string.filter_all)
-                                        }
-                                    )
-                                },
-                                onClick = {
-                                    vm.statusFilter.value = opt
-                                    filterExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-                Spacer(Modifier.width(10.dp))
                 NetijeSearchBar(
                     value = search,
                     onValueChange = { vm.search.value = it },

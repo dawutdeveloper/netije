@@ -79,6 +79,7 @@ fun ReportTransactionsScreen(
     val state by vm.state.collectAsState()
     val persons by vm.persons.collectAsState()
     val personFilter by vm.personFilter.collectAsState()
+    val statusFilter by vm.statusFilter.collectAsState()
     val settings by settingsVm.state.collectAsState()
     val ctx = LocalContext.current
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
@@ -108,7 +109,7 @@ fun ReportTransactionsScreen(
                 title = { Text(stringResource(R.string.report_transactions_title), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     IconButton(onClick = { nav.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.nav_back), tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -233,6 +234,7 @@ fun ReportTransactionsScreen(
                     }
                 }
             }
+            item { com.example.netije.presentation.component.TransactionStatusFilter(statusFilter, { vm.statusFilter.value = it }) }
             if (state.transactions.isEmpty()) {
                 item {
                     Box(Modifier.fillMaxWidth().height(140.dp), contentAlignment = Alignment.Center) {
@@ -240,7 +242,7 @@ fun ReportTransactionsScreen(
                     }
                 }
             } else {
-                items(state.transactions) { tx ->
+                items(state.transactions, key = { it.id }) { tx ->
                     val person = persons.firstOrNull { it.person.id == tx.personId }?.person
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -265,24 +267,10 @@ fun ReportTransactionsScreen(
                                 Text(df.format(Date(tx.date)), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(stringResource(R.string.tx_purpose) + ":", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
-                                    Spacer(Modifier.height(3.dp))
-                                    Text(
-                                        tx.purpose.takeIf { !it.isNullOrBlank() } ?: "—",
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        style = MaterialTheme.typography.bodyLarge
-                                    )
-                                }
-                                Spacer(Modifier.width(10.dp))
-                                AmountText(amount = tx.amount, type = tx.type, currency = currency, style = MaterialTheme.typography.titleLarge)
-                            }
+                            com.example.netije.presentation.component.TransactionRow(
+                                t = tx, currency = currency, purpose = tx.purpose,
+                                onRowClick = { nav.navigate(com.example.netije.presentation.navigation.Routes.transactionDetail(tx.id)) }
+                            )
                         }
                     }
                 }

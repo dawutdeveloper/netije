@@ -32,6 +32,7 @@ import com.example.netije.domain.repository.FinanceRepository
 import com.example.netije.domain.repository.PersonRepository
 import com.example.netije.domain.repository.SettingsRepository
 import com.example.netije.domain.repository.TransactionRepository
+import androidx.room.withTransaction
 import com.google.gson.Gson
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -48,10 +49,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 private suspend fun TransactionDto.toLocalEntity(dao: TransactionDao): TransactionEntity {
-    val local = id?.let { dao.getById(it)?.toDomain() }
-    val mergedChanges = (local?.changes.orEmpty() + changes.orEmpty())
+    val local = id?.let { dao.getById(it) }
+    val mergedChanges = (local?.toDomain()?.changes.orEmpty() + changes.orEmpty())
         .distinctBy { it.id }.sortedBy { it.changedAt }
-    return toDomain().copy(changes = mergedChanges).toEntity()
+    val remote = toDomain().copy(changes = mergedChanges).toEntity()
+    return if (local?.statusPending == true) local.copy(changes = com.google.gson.Gson().toJson(mergedChanges))
+    else if (status == null && local != null) remote.copy(status = local.status) else remote
 }
 
 @Singleton
@@ -110,7 +113,7 @@ class AuthRepositoryImpl @Inject constructor(
             val body = if (res.isSuccessful) res.body() else null
             if (body != null) {
                 personDao.upsertRemoteAll(body.persons.map { it.toDomain().toEntity() })
-                transactionDao.upsertAll(body.transactions.map { it.toLocalEntity(transactionDao) })
+                transactionDao.upsertRemoteAll(body.transactions.map { it.toLocalEntity(transactionDao) })
             }
         } catch (_: Exception) { }
     }
@@ -181,8 +184,8 @@ class PersonRepositoryImpl @Inject constructor(
 
     override suspend fun upsertPerson(person: Person): String {
         val existing = personDao.getById(person.id)
-        val local = person.toEntity().let {
-            if (existing?.statusPending == true) it.copy(status = existing.status, statusPending = true) else it
+        val local = person.toEntity().copy(statusPending = true).let {
+            if (existing?.statusPending == true) it.copy(status = existing.status) else it
         }
         personDao.upsert(local)
         try {
@@ -225,18 +228,24 @@ class TransactionRepositoryImpl @Inject constructor(
     private val personDao: PersonDao
 ) : TransactionRepository {
 
-    private suspend fun autoSettleIfNeeded(personId: String) {
-        val person = personDao.getById(personId) ?: return
-        val current = PersonStatus.fromString(person.status)
-        if (current != PersonStatus.ACTIVE) return
-        val txList = transactionDao.getByPerson(personId).map { it.toDomain() }
-        if (txList.isEmpty()) return
-        val received = txList.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
-        val issued = txList.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
-        val balance = received - issued
-        val settled = kotlin.math.abs(balance) < 0.005
-        if (settled) {
-            personDao.setStatus(personId, PersonStatus.SETTLED.name)
+    private val statusMutex = Mutex()
+
+    private suspend fun upload(transaction: TransactionEntity) {
+        val dto = TransactionDto.fromDomain(transaction.toDomain())
+        val response = transactionsApi.update(transaction.id, dto).let {
+            if (it.code() == 404) transactionsApi.create(dto) else it
+        }
+        if (response.isSuccessful && response.body()?.status == transaction.status) {
+            transactionDao.acknowledgeStatus(transaction.id, transaction.status, transaction.updatedAt)
+        }
+    }
+
+    override suspend fun setTransactionStatus(id: String, status: com.example.netije.domain.model.TransactionStatus) {
+        transactionDao.setStatus(id, status.name)
+        statusMutex.withLock {
+            try { transactionDao.getById(id)?.let { upload(it) } }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* Retry pending selection on refresh. */ }
         }
     }
 
@@ -286,31 +295,31 @@ class TransactionRepositoryImpl @Inject constructor(
         transactionDao.getById(id)?.toDomain()
 
     override suspend fun upsertTransaction(transaction: Transaction): String {
-        transactionDao.upsert(transaction.toEntity())
-        runCatching { autoSettleIfNeeded(transaction.personId) }
-        try {
-            if (transactionsApi.getById(transaction.id).isSuccessful) {
-                transactionsApi.update(transaction.id, TransactionDto.fromDomain(transaction))
-            } else {
-                transactionsApi.create(TransactionDto.fromDomain(transaction))
-            }
-        } catch (_: Exception) { }
+        transactionDao.upsert(transaction.toEntity().copy(statusPending = true))
+        statusMutex.withLock {
+            try { transactionDao.getById(transaction.id)?.let { upload(it) } }
+            catch (e: CancellationException) { throw e }
+            catch (_: Exception) { }
+        }
         return transaction.id
     }
 
     override suspend fun deleteTransaction(id: String) {
-        val tx = transactionDao.getById(id)
         transactionDao.deleteById(id)
-        tx?.let { runCatching { autoSettleIfNeeded(it.personId) } }
         try { transactionsApi.delete(id) } catch (_: Exception) { }
     }
 
     override suspend fun refreshFromRemote() {
         try {
+            statusMutex.withLock {
+                transactionDao.pendingStatuses().forEach { local ->
+                    try { upload(local) } catch (e: CancellationException) { throw e } catch (_: Exception) { }
+                }
+            }
             val res = transactionsApi.getAll()
             val body = if (res.isSuccessful) res.body() else null
             if (body != null) {
-                transactionDao.upsertAll(body.map { it.toLocalEntity(transactionDao) })
+                transactionDao.upsertRemoteAll(body.map { it.toLocalEntity(transactionDao) })
             }
         } catch (_: Exception) { }
     }
@@ -375,36 +384,95 @@ class SettingsRepositoryImpl @Inject constructor(
 class BackupRepositoryImpl @Inject constructor(
     private val personDao: PersonDao,
     private val transactionDao: TransactionDao,
-    private val gson: Gson
+    private val gson: Gson,
+    private val database: NetijeDatabase,
+    @ApplicationContext private val context: android.content.Context
 ) : BackupRepository {
+    private val importMutex = Mutex()
 
-    private data class BackupJson(
-        val version: Int = 1,
-        val exportedAt: Long = System.currentTimeMillis(),
-        val persons: List<Person>,
-        val transactions: List<Transaction>
-    )
-
-    override suspend fun exportToJson(): String {
-        val persons = personDao.observeAll().first().map { it.toDomain() }
-        val transactions = transactionDao.observeAll().first().map { it.toDomain() }
-        return gson.toJson(BackupJson(persons = persons, transactions = transactions))
+    override suspend fun exportToJson(): String = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val snapshot = database.withTransaction {
+            personDao.observeAll().first().map { it.toDomain() } to transactionDao.observeAll().first().map { it.toDomain() }
+        }
+        val assets = linkedMapOf<String, com.example.netije.data.backup.BackupAsset>()
+        val references = mutableMapOf<String, String>()
+        val missingFiles = linkedSetOf<String>()
+        fun portable(path: String?): String? {
+            if (path.isNullOrBlank()) return path
+            if (path.startsWith("https://") || path.startsWith("http://")) return path
+            return references.getOrPut(path) {
+                val uri = com.example.netije.presentation.util.TransactionAttachments.uri(path)
+                val bytes = try { context.contentResolver.openInputStream(uri)?.use { it.readBytes() } }
+                    catch (_: java.io.IOException) { null }
+                    catch (_: SecurityException) { null }
+                if (bytes == null) {
+                    missingFiles += path
+                    return@getOrPut path
+                }
+                val key = "backup:${java.util.UUID.randomUUID()}"
+                assets[key] = com.example.netije.data.backup.BackupAsset(
+                    com.example.netije.presentation.util.TransactionAttachments.name(context, path),
+                    android.util.Base64.encodeToString(bytes, android.util.Base64.NO_WRAP)
+                )
+                key
+            }
+        }
+        val persons = snapshot.first.map { it.copy(avatarUrl = portable(it.avatarUrl)) }
+        val transactions = snapshot.second.map { t -> t.copy(attachments = t.attachments.map { portable(it)!! }) }
+        gson.toJson(com.example.netije.data.backup.BackupDocument(
+            persons = persons, transactions = transactions, assets = assets, missingFiles = missingFiles.toList()
+        ))
     }
 
-    override suspend fun importFromJson(json: String): Int {
-        val backup = runCatching { gson.fromJson(json, BackupJson::class.java) }.getOrNull()
-            ?: return 0
-        personDao.clear()
-        transactionDao.clear()
-        personDao.upsertAll(backup.persons.map { it.toEntity() })
-        transactionDao.upsertAll(backup.transactions.map { it.toEntity() })
-        return backup.persons.size + backup.transactions.size
+    override suspend fun importFromJson(json: String): Int = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        importMutex.withLock {
+            val document = com.example.netije.data.backup.BackupCodec.decode(json, gson)
+            // Decode every asset before creating files or changing the database.
+            val bytes = document.assets.mapValues { android.util.Base64.decode(it.value.data, android.util.Base64.NO_WRAP) }
+            val directory = java.io.File(context.filesDir, "attachments/import-${java.util.UUID.randomUUID()}")
+            val paths = mutableMapOf<String, String>()
+            try {
+                document.assets.forEach { (key, asset) ->
+                    val filename = asset.name.substringAfterLast('/').substringAfterLast('\\')
+                    require(filename.isNotBlank() && filename != "." && filename != "..")
+                    val assetDirectory = java.io.File(directory, java.util.UUID.randomUUID().toString()).apply { check(mkdirs()) }
+                    val file = java.io.File(assetDirectory, filename)
+                    file.writeBytes(bytes.getValue(key))
+                    paths[key] = file.absolutePath
+                }
+                // Keep a recovery snapshot before a merge, including records already on this phone.
+                val safety = java.io.File(context.filesDir, "backups/before-import-${System.currentTimeMillis()}.json")
+                safety.parentFile!!.mkdirs()
+                safety.writeText(exportToJson())
+                database.withTransaction {
+                    var imported = 0
+                    document.persons.forEach { incoming ->
+                        val existing = personDao.getById(incoming.id)
+                        if (existing == null || incoming.updatedAt > existing.updatedAt) {
+                            personDao.upsert(incoming.copy(avatarUrl = paths[incoming.avatarUrl] ?: incoming.avatarUrl).toEntity().copy(statusPending = true))
+                            imported++
+                        }
+                    }
+                    document.transactions.forEach { incoming ->
+                        val existing = transactionDao.getById(incoming.id)
+                        if (existing == null || incoming.updatedAt > existing.updatedAt) {
+                            val history = (existing?.toDomain()?.changes.orEmpty() + incoming.changes).distinctBy { it.id }.sortedBy { it.changedAt }
+                            transactionDao.upsert(incoming.copy(
+                                attachments = incoming.attachments.map { paths[it] ?: it }, changes = history
+                            ).toEntity().copy(statusPending = true))
+                            imported++
+                        }
+                    }
+                    imported
+                }
+            } catch (e: Exception) {
+                directory.deleteRecursively()
+                throw e
+            }
+        }
     }
 
-    override suspend fun backupToGoogleDrive(json: String): Boolean {
-        return true
-    }
-
+    override suspend fun backupToGoogleDrive(json: String): Boolean = false
     override suspend fun restoreFromGoogleDrive(): String? = null
 }
 

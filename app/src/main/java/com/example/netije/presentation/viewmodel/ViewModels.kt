@@ -11,6 +11,10 @@ import com.example.netije.domain.model.DayTransactions
 import com.example.netije.domain.model.Person
 import com.example.netije.domain.model.ReportSummaryRow
 import com.example.netije.domain.model.Transaction
+import com.example.netije.domain.model.parseMoney
+import com.example.netije.domain.model.startOfDayMillis
+import com.example.netije.domain.model.endOfDayMillis
+import com.example.netije.domain.model.TransactionStatus
 import com.example.netije.domain.model.TransactionType
 import com.example.netije.domain.usecase.DeletePersonUseCase
 import com.example.netije.domain.usecase.DeleteTransactionUseCase
@@ -56,6 +60,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedWriter
@@ -68,20 +73,15 @@ class HomeViewModel @Inject constructor(
     private val observePersons: ObservePersonsWithTransactionsUseCase,
     observeSummary: ObserveFinanceSummaryUseCase,
     private val refreshData: com.example.netije.domain.usecase.RefreshDataUseCase,
-    private val setPersonStatus: SetPersonStatusUseCase,
     private val deletePerson: DeletePersonUseCase
 ) : ViewModel() {
     val search = MutableStateFlow("")
-    val statusFilter = MutableStateFlow<PersonStatus?>(PersonStatus.ACTIVE)
+    val statusFilter = MutableStateFlow<TransactionStatus?>(TransactionStatus.ACTIVE)
 
     init {
         viewModelScope.launch(Dispatchers.IO) {
             runCatching { refreshData() }
         }
-    }
-
-    fun setPersonStatusById(id: String, status: PersonStatus) = viewModelScope.launch {
-        runCatching { setPersonStatus(id, status) }
     }
 
     fun deletePersonById(id: String) = viewModelScope.launch {
@@ -95,15 +95,18 @@ class HomeViewModel @Inject constructor(
         observeSummary()
     ) { q, status, sum -> Triple(q, status, sum) }
         .flatMapLatest { (q, status, sum) ->
-            observePersons(status, q.ifBlank { null })
-                .combine(flowOf(sum)) { list, s -> HomeState(q, status, s, list) }
+            observePersons(null, q.ifBlank { null })
+                .combine(flowOf(sum)) { list, s ->
+                    val filtered = list.map { pwt -> pwt.copy(transactions = pwt.transactions.filter { status == null || it.status == status }) }
+                    HomeState(q, status, s, filtered)
+                }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState())
 }
 
 data class HomeState(
     val query: String = "",
-    val status: PersonStatus? = PersonStatus.ACTIVE,
+    val status: TransactionStatus? = TransactionStatus.ACTIVE,
     val summary: FinanceSummary = FinanceSummary(0.0, 0.0),
     val persons: List<PersonWithTransactions> = emptyList()
 )
@@ -112,17 +115,13 @@ data class HomeState(
 class CalendarViewModel @Inject constructor(
     observeMonth: ObserveMonthSummaryUseCase,
     observeByDay: ObserveTransactionsByDayUseCase,
-    private val setPersonStatus: SetPersonStatusUseCase,
     private val deletePerson: DeletePersonUseCase
 ) : ViewModel() {
     private val now = Calendar.getInstance()
     val year = MutableStateFlow(now.get(Calendar.YEAR))
     val month = MutableStateFlow(now.get(Calendar.MONTH))
     val selectedDate = MutableStateFlow(System.currentTimeMillis())
-
-    fun setPersonStatusById(id: String, status: PersonStatus) = viewModelScope.launch {
-        runCatching { setPersonStatus(id, status) }
-    }
+    val statusFilter = MutableStateFlow<TransactionStatus?>(TransactionStatus.ACTIVE)
 
     fun deletePersonById(id: String) = viewModelScope.launch {
         runCatching { deletePerson(id) }
@@ -136,10 +135,13 @@ class CalendarViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val dayGroups: StateFlow<List<DayTransactions>> = combine(year, month) { y, m ->
         val c = Calendar.getInstance()
-        c.set(y, m, 1, 0, 0, 0); val s = c.timeInMillis
+        c.clear(); c.set(y, m, 1, 0, 0, 0); val s = c.timeInMillis
         c.set(y, m + 1, 1, 0, 0, 0); val e = c.timeInMillis - 1
         s to e
     }.flatMapLatest { (s, e) -> observeByDay(s, e) }
+        .combine(statusFilter) { groups, status -> groups.map { day ->
+            day.copy(transactions = day.transactions.filter { status == null || it.status == status })
+        }.filter { it.transactions.isNotEmpty() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun nextMonth() {
@@ -173,7 +175,11 @@ class NewPersonViewModel @Inject constructor(
     private val getPerson: com.example.netije.domain.usecase.GetPersonUseCase,
     savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
-    val editingPersonId: String? = savedStateHandle["personId"]
+    val editingPersonId: String? = savedStateHandle.get<String>("personId")?.ifBlank { null }
+    private val draftId = savedStateHandle.get<String>("draftPersonId") ?: java.util.UUID.randomUUID().toString().also { savedStateHandle["draftPersonId"] = it }
+    val saving = MutableStateFlow(false)
+    val ready = MutableStateFlow(false)
+    private var existingCreatedAt = System.currentTimeMillis()
     val name = MutableStateFlow("")
     val phones = MutableStateFlow<List<String>>(listOf(""))
     val emails = MutableStateFlow<List<String>>(listOf(""))
@@ -189,6 +195,7 @@ class NewPersonViewModel @Inject constructor(
         viewModelScope.launch {
             val existing = editingPersonId?.let { getPerson(it) }
             if (existing != null) {
+                existingCreatedAt = existing.createdAt
                 name.value = existing.name
                 val pl = existing.phones.toMutableList()
                 phones.value = if (pl.isEmpty()) listOf("") else pl
@@ -212,6 +219,7 @@ class NewPersonViewModel @Inject constructor(
                     avatarFromContact.value = picked.avatarUrl
                 }
             }
+            ready.value = true
         }
     }
 
@@ -240,21 +248,23 @@ class NewPersonViewModel @Inject constructor(
 
     suspend fun save(): String? {
         val n = name.value.trim()
-        if (n.isBlank()) return null
-        return savePerson(
+        if (n.isBlank() || saving.value || !ready.value) return null
+        saving.value = true
+        try { return savePerson(
             com.example.netije.domain.model.Person(
-                id = editingPersonId.orEmpty(),
+                id = editingPersonId ?: draftId,
+                createdAt = existingCreatedAt,
                 name = n,
                 phones = phones.value.map { it.trim() }.filter { it.isNotBlank() },
                 emails = emails.value.map { it.trim() }.filter { it.isNotBlank() },
                 city = city.value.trim().ifBlank { null },
                 address = address.value.trim().ifBlank { null },
-                avatarUrl = avatarFromContact.value ?: customAvatarUrl.value,
+                avatarUrl = customAvatarUrl.value ?: avatarFromContact.value,
                 isImportant = isImportant.value,
                 contactLookupUri = contactUri.value,
                 status = existingStatus.value
             )
-        )
+        ) } finally { saving.value = false }
     }
 }
 
@@ -271,6 +281,7 @@ class NewTransactionViewModel @Inject constructor(
     }
     val editingTransactionId: String? =
         savedStateHandle.get<String>("transactionId")?.ifBlank { null }
+    private val draftId = savedStateHandle.get<String>("draftTransactionId") ?: java.util.UUID.randomUUID().toString().also { savedStateHandle["draftTransactionId"] = it }
     val type = MutableStateFlow(TransactionType.RECEIVED)
     val date = MutableStateFlow(System.currentTimeMillis())
     val time = MutableStateFlow(System.currentTimeMillis())
@@ -279,7 +290,8 @@ class NewTransactionViewModel @Inject constructor(
     val purpose = MutableStateFlow("")
     val amount = MutableStateFlow("")
     val note = MutableStateFlow("")
-    val ready = MutableStateFlow(editingTransactionId == null)
+    val ready = MutableStateFlow(false)
+    private var saving = false
     private val persistedAttachments: MutableStateFlow<List<String>> = MutableStateFlow(
         (savedStateHandle[KEY_ATTACHMENTS] ?: emptyList<String>()).toList()
     )
@@ -295,6 +307,13 @@ class NewTransactionViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            if (editingTransactionId == null) {
+                savedStateHandle.get<Long>("date")?.takeIf { it > 0 }?.let { date.value = it }
+                savedStateHandle.get<String>("preselectedPersonId")?.takeIf { it.isNotBlank() }?.let { id ->
+                    preselectPerson(id, getPerson(id)?.name)
+                }
+            }
+            if (editingTransactionId == null) ready.value = true
             val eid = editingTransactionId
             if (eid != null) {
                 val existing = getTransaction(eid)
@@ -325,16 +344,7 @@ class NewTransactionViewModel @Inject constructor(
     }
     fun presetDate(d: Long) { date.value = d }
 
-    fun setAmount(newVal: String) {
-        var filtered = newVal.filter { it.isDigit() || it == '.' || it == ',' }
-        if (filtered.firstOrNull() in listOf('.', ',')) filtered = "0$filtered"
-        val firstDot = filtered.indexOfFirst { it == '.' || it == ',' }
-        amount.value = if (firstDot == -1) filtered else {
-            val head = filtered.substring(0, firstDot + 1)
-            val tail = filtered.substring(firstDot + 1).filter { it.isDigit() }.take(2)
-            head + tail
-        }
-    }
+    fun setAmount(newVal: String) { amount.value = newVal }
 
     fun addAttachment(path: String) {
         persistedAttachments.value = persistedAttachments.value + path
@@ -348,13 +358,14 @@ class NewTransactionViewModel @Inject constructor(
     }
 
     suspend fun save(): String? {
-        if (!ready.value) return null
+        if (!ready.value || saving) return null
         val pid = personId.value ?: return null
-        val amt = amount.value.replace(",", ".").toDoubleOrNull() ?: 0.0
+        val amt = parseMoney(amount.value) ?: return null
         if (pid.isBlank() || amt <= 0.0) return null
-        return save(
+        saving = true
+        try { return save(
             com.example.netije.domain.model.Transaction(
-                id = editingTransactionId.orEmpty(),
+                id = editingTransactionId ?: draftId,
                 personId = pid,
                 type = type.value,
                 amount = amt,
@@ -365,7 +376,7 @@ class NewTransactionViewModel @Inject constructor(
                 date = date.value,
                 time = time.value
             )
-        )
+        ) } finally { saving = false }
     }
 }
 
@@ -374,11 +385,11 @@ class SelectContactViewModel @Inject constructor(
     observePersons: ObservePersonsWithTransactionsUseCase
 ) : ViewModel() {
     val search = MutableStateFlow("")
-    val statusFilter = MutableStateFlow<PersonStatus?>(PersonStatus.ACTIVE)
+    val statusFilter = MutableStateFlow<PersonStatus?>(null)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state = combine(search, statusFilter) { q, s -> q to s }
-        .flatMapLatest { (q, s) -> observePersons(s, q.ifBlank { null }) }
+        .flatMapLatest { (q, s) -> observePersons(null, q.ifBlank { null }) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 }
 
@@ -413,8 +424,8 @@ class SettingsViewModel @Inject constructor(
         nextRunAt: Long?
     ) = viewModelScope.launch { setBackupFrequency(number, unit, nextRunAt) }
     fun markBackupTakenNow() = viewModelScope.launch { markBackupTaken() }
-    suspend fun export(): String = exportBackup()
-    suspend fun import(json: String): Int = importBackup(json)
+    suspend fun export(): String = withContext(Dispatchers.IO) { exportBackup() }
+    suspend fun import(json: String): Int = withContext(Dispatchers.IO) { importBackup(json) }
 }
 
 data class SettingsState(
@@ -425,7 +436,6 @@ data class SettingsState(
 @HiltViewModel
 class PersonDetailViewModel @Inject constructor(
     observePersonWithTransactions: ObservePersonWithTransactionsUseCase,
-    private val setStatus: SetPersonStatusUseCase,
     private val deletePerson: com.example.netije.domain.usecase.DeletePersonUseCase,
     savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
@@ -444,10 +454,6 @@ class PersonDetailViewModel @Inject constructor(
                 )
             }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PersonDetailState())
-
-    fun setStatus(status: PersonStatus) = viewModelScope.launch {
-        state.value.person?.let { setStatus(it.id, status) }
-    }
 
     fun delete() = viewModelScope.launch {
         state.value.person?.let { deletePerson(it.id) }
@@ -540,7 +546,7 @@ class ReportUserViewModel @Inject constructor(
         savedStateHandle.get<String>("personId")?.ifBlank { null }
     val personId = MutableStateFlow<String?>(preselectedPersonId)
     val fromDate = MutableStateFlow(startOfMonthMillis())
-    val toDate = MutableStateFlow(System.currentTimeMillis())
+    val toDate = MutableStateFlow(endOfDayMillis(System.currentTimeMillis()))
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val persons: StateFlow<List<PersonWithTransactions>> =
@@ -571,8 +577,14 @@ class ReportUserViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportUserState())
 
     fun updatePerson(id: String?) { personId.value = id }
-    fun updateFrom(m: Long) { fromDate.value = m }
-    fun updateTo(m: Long) { toDate.value = m }
+    fun updateFrom(m: Long) {
+        fromDate.value = startOfDayMillis(m)
+        if (toDate.value < fromDate.value) toDate.value = endOfDayMillis(m)
+    }
+    fun updateTo(m: Long) {
+        toDate.value = endOfDayMillis(m)
+        if (fromDate.value > toDate.value) fromDate.value = startOfDayMillis(m)
+    }
 
     fun export(format: ReportFormat, currencyCode: String = "TMT") {
         val current = state.value
@@ -628,7 +640,7 @@ class ReportSummaryViewModel @Inject constructor(
     @ApplicationContext private val ctx: Context
 ) : ViewModel() {
     val fromDate = MutableStateFlow(startOfMonthMillis())
-    val toDate = MutableStateFlow(System.currentTimeMillis())
+    val toDate = MutableStateFlow(endOfDayMillis(System.currentTimeMillis()))
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: StateFlow<ReportSummaryState> = combine(fromDate, toDate) { f, t -> f to t }
@@ -650,8 +662,14 @@ class ReportSummaryViewModel @Inject constructor(
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportSummaryState())
 
-    fun updateFrom(m: Long) { fromDate.value = m }
-    fun updateTo(m: Long) { toDate.value = m }
+    fun updateFrom(m: Long) {
+        fromDate.value = startOfDayMillis(m)
+        if (toDate.value < fromDate.value) toDate.value = endOfDayMillis(m)
+    }
+    fun updateTo(m: Long) {
+        toDate.value = endOfDayMillis(m)
+        if (fromDate.value > toDate.value) fromDate.value = startOfDayMillis(m)
+    }
 
     fun export(format: ReportFormat, currencyCode: String = "TMT") {
         val f = fromDate.value
@@ -708,10 +726,11 @@ class ReportTransactionsViewModel @Inject constructor(
 ) : ViewModel() {
     private data class Quad4<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
+    val statusFilter = MutableStateFlow<TransactionStatus?>(null)
     val personFilter = MutableStateFlow<String?>(null)
     val typeFilter = MutableStateFlow<TransactionType?>(null)
     val fromDate = MutableStateFlow(startOfMonthMillis())
-    val toDate = MutableStateFlow(System.currentTimeMillis())
+    val toDate = MutableStateFlow(endOfDayMillis(System.currentTimeMillis()))
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val persons: StateFlow<List<PersonWithTransactions>> =
@@ -730,12 +749,23 @@ class ReportTransactionsViewModel @Inject constructor(
                 val iss = filtered.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
                 ReportTransactionsState(filtered, recv, iss, f, to)
             }
+        }.combine(statusFilter) { current, status ->
+            val transactions = current.transactions.filter { status == null || it.status == status }
+            current.copy(transactions = transactions,
+                received = transactions.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount },
+                issued = transactions.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount })
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportTransactionsState())
 
     fun setPerson(id: String?) { personFilter.value = id }
     fun setType(t: TransactionType?) { typeFilter.value = t }
-    fun updateFrom(m: Long) { fromDate.value = m }
-    fun updateTo(m: Long) { toDate.value = m }
+    fun updateFrom(m: Long) {
+        fromDate.value = startOfDayMillis(m)
+        if (toDate.value < fromDate.value) toDate.value = endOfDayMillis(m)
+    }
+    fun updateTo(m: Long) {
+        toDate.value = endOfDayMillis(m)
+        if (fromDate.value > toDate.value) fromDate.value = startOfDayMillis(m)
+    }
 
     fun export(format: ReportFormat, currencyCode: String = "TMT") {
         val f = fromDate.value
@@ -784,4 +814,11 @@ data class ReportTransactionsState(
     val toDate: Long = 0L
 ) {
     val balance: Double get() = received - issued
+}
+
+@HiltViewModel
+class TransactionActionsViewModel @Inject constructor(
+    private val repository: com.example.netije.domain.repository.TransactionRepository
+) : ViewModel() {
+    suspend fun setStatus(id: String, status: TransactionStatus) = viewModelScope.async { repository.setTransactionStatus(id, status) }.await()
 }

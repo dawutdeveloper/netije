@@ -221,6 +221,7 @@ fun BalanceAmountText(
     )
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TransactionRow(
     t: Transaction,
@@ -230,11 +231,16 @@ fun TransactionRow(
     onRowClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    var showStatus by remember(t.id) { mutableStateOf(false) }
+    if (showStatus) TransactionStatusDialog(t, onDismiss = { showStatus = false })
     Row(
         modifier = modifier
             .fillMaxWidth()
             .then(
-                if (onRowClick != null) Modifier.clickable(onClick = onRowClick) else Modifier
+                Modifier.combinedClickable(
+                    onClick = onRowClick ?: {}, onLongClick = { showStatus = true },
+                    onLongClickLabel = stringResource(R.string.transaction_status_change)
+                )
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -271,6 +277,7 @@ fun TransactionRow(
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            Text(transactionStatusLabel(t.status), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.height(6.dp))
             Text(
                 text = purpose.takeIf { !it.isNullOrBlank() } ?: "—",
@@ -282,7 +289,7 @@ fun TransactionRow(
         }
         if (onEditClick != null) {
             IconButton(onClick = onEditClick) {
-                Icon(Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.transaction_detail_edit_btn), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -344,15 +351,19 @@ fun ExpandablePersonCard(
                 IconButton(onClick = { expanded = !expanded }) {
                     Icon(
                         imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                        contentDescription = null,
+                        contentDescription = stringResource(if (expanded) R.string.collapse_transactions else R.string.expand_transactions),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
-            androidx.compose.animation.AnimatedVisibility(visible = expanded && pwt.transactions.isNotEmpty()) {
+            androidx.compose.animation.AnimatedVisibility(visible = expanded) {
                 Column {
                     Spacer(Modifier.height(6.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    if (pwt.transactions.isEmpty()) Text(
+                        stringResource(R.string.no_transactions_yet),
+                        modifier = Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     pwt.transactions.forEachIndexed { idx, t ->
                         TransactionRow(
                             t = t,
@@ -383,7 +394,7 @@ fun PersonFAB(
         contentColor = Color.White,
         shape = RoundedCornerShape(24.dp)
     ) {
-        Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(32.dp))
+        Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.add_person_accessibility), modifier = Modifier.size(32.dp))
     }
 }
 
@@ -399,7 +410,7 @@ fun PlusFAB(
         contentColor = Color.White,
         shape = RoundedCornerShape(24.dp)
     ) {
-        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(34.dp))
+        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_transaction_accessibility), modifier = Modifier.size(34.dp))
     }
 }
 

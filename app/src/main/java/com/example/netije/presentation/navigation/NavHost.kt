@@ -7,7 +7,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.example.netije.di.PickedPersonForTxHolder
 import com.example.netije.presentation.screen.calendar.CalendarScreen
 import com.example.netije.presentation.screen.home.HomeScreen
 import com.example.netije.presentation.screen.person.NewPersonScreen
@@ -64,21 +63,18 @@ fun NetijeNavHost(
             )
         ) {
             val pid = it.arguments?.getString("preselectedPersonId")?.ifBlank { null }
-            val date = it.arguments?.getLong("date")?.takeIf { it > 0L }
             NewTransactionScreen(
                 nav = navController,
                 preselectedPersonId = pid,
-                presetDate = date
+                pickerState = it.savedStateHandle
             )
         }
         composable(Routes.SELECT_CONTACT) {
             SelectContactScreen(
                 nav = navController,
                 onPersonSelected = { id, name ->
-                    // Store id+name in holder; the NewTransactionScreen composable under
-                    // the previous NavBackStack entry will consume() it when it recomposes
-                    // after user taps back / popBackStack().
-                    PickedPersonForTxHolder.set(id, name)
+                    // Return the selection through the transaction entry's saved state.
+                    navController.previousBackStackEntry?.savedStateHandle?.set("picked_person", arrayListOf(id, name))
                 }
             )
         }

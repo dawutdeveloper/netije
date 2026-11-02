@@ -101,7 +101,9 @@ fun TransactionDetailScreen(
     var exportMenuExpanded by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
+    var showStatus by remember { mutableStateOf(false) }
     val tx: Transaction? = state.transaction
+    if (showStatus && tx != null) com.example.netije.presentation.component.TransactionStatusDialog(tx, { showStatus = false })
 
     val exportSuccessMsg = stringResource(R.string.transaction_detail_export_success)
     val exportFailMsg = stringResource(R.string.transaction_detail_export_fail)
@@ -122,7 +124,7 @@ fun TransactionDetailScreen(
                     IconButton(onClick = { nav.popBackStack() }) {
                         Icon(
                             Icons.Default.ArrowBack,
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.nav_back),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -227,6 +229,9 @@ fun TransactionDetailScreen(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                AssistChip(onClick = { showStatus = true }, label = {
+                    Text(stringResource(R.string.transaction_status_change) + ": " + com.example.netije.presentation.component.transactionStatusLabel(tx.status))
+                })
                 // ===== Amount + Person summary card
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -293,7 +298,7 @@ fun TransactionDetailScreen(
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
-                                    if (person.status == PersonStatus.SETTLED) {
+                                    if (tx.status == com.example.netije.domain.model.TransactionStatus.SETTLED) {
                                         Spacer(Modifier.width(6.dp))
                                         AssistChip(
                                             onClick = {},

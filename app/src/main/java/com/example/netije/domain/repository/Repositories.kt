@@ -39,6 +39,11 @@ interface PersonRepository {
 }
 
 interface TransactionRepository {
+    suspend fun setTransactionStatus(id: String, status: com.example.netije.domain.model.TransactionStatus) {
+        val transaction = getTransaction(id) ?: return
+        upsertTransaction(transaction.copy(status = status, updatedAt = System.currentTimeMillis()))
+    }
+
     fun observeTransactions(
         personId: String? = null,
         fromDate: Long? = null,

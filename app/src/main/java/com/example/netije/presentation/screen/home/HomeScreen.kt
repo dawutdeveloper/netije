@@ -60,7 +60,7 @@ import androidx.navigation.NavController
 import com.example.netije.R
 import com.example.netije.di.PickedContactHolder
 import com.example.netije.domain.model.Person
-import com.example.netije.domain.model.PersonStatus
+import com.example.netije.domain.model.TransactionStatus
 import com.example.netije.domain.model.PersonWithTransactions
 import com.example.netije.domain.model.TransactionType
 import com.example.netije.presentation.component.AmountText
@@ -86,7 +86,6 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
     val filterExpanded = remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState()
     var showSheet by remember { mutableStateOf(false) }
-    var longPressPerson: PersonWithTransactions? by remember { mutableStateOf(null) }
     var confirmDeletePerson: Person? by remember { mutableStateOf(null) }
     val scope = rememberCoroutineScope()
     val ctx = LocalContext.current
@@ -226,9 +225,9 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                     Box {
                         NetijeFilterChip(
                             label = when (state.status) {
-                                PersonStatus.ACTIVE -> stringResource(R.string.filter_active)
-                                PersonStatus.ARCHIVED -> stringResource(R.string.filter_archived)
-                                PersonStatus.SETTLED -> stringResource(R.string.filter_settled)
+                                TransactionStatus.ACTIVE -> stringResource(R.string.filter_active)
+                                TransactionStatus.ARCHIVED -> stringResource(R.string.filter_archived)
+                                TransactionStatus.SETTLED -> stringResource(R.string.filter_settled)
                                 null -> stringResource(R.string.filter_all)
                             },
                             selected = true,
@@ -238,14 +237,14 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                             expanded = filterExpanded.value,
                             onDismissRequest = { filterExpanded.value = false }
                         ) {
-                            listOf(PersonStatus.ACTIVE, PersonStatus.ARCHIVED, PersonStatus.SETTLED, null).forEach { opt ->
+                            listOf(TransactionStatus.ACTIVE, TransactionStatus.ARCHIVED, TransactionStatus.SETTLED, null).forEach { opt ->
                                 DropdownMenuItem(
                                     text = {
                                         Text(
                                             when (opt) {
-                                                PersonStatus.ACTIVE -> stringResource(R.string.filter_active)
-                                                PersonStatus.ARCHIVED -> stringResource(R.string.filter_archived)
-                                                PersonStatus.SETTLED -> stringResource(R.string.filter_settled)
+                                                TransactionStatus.ACTIVE -> stringResource(R.string.filter_active)
+                                                TransactionStatus.ARCHIVED -> stringResource(R.string.filter_archived)
+                                                TransactionStatus.SETTLED -> stringResource(R.string.filter_settled)
                                                 else -> stringResource(R.string.filter_all)
                                             }
                                         )
@@ -305,7 +304,7 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                         onCardClick = {
                             nav.navigate(Routes.personDetail(pwt.person.id))
                         },
-                        onCardLongClick = { longPressPerson = pwt }
+                        onCardLongClick = { confirmDeletePerson = pwt.person }
                     )
                 }
             }
@@ -353,75 +352,6 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                 Spacer(Modifier.height(40.dp))
             }
         }
-    }
-
-    val lp = longPressPerson
-    if (lp != null) {
-        AlertDialog(
-            onDismissRequest = { longPressPerson = null },
-            title = { Text(lp.person.name) },
-            text = {
-                Column {
-                    val statusRes = when (lp.person.status) {
-                        PersonStatus.ACTIVE -> R.string.filter_active
-                        PersonStatus.ARCHIVED -> R.string.filter_archived
-                        PersonStatus.SETTLED -> R.string.filter_settled
-                    }
-                    Text(stringResource(statusRes))
-                    Spacer(Modifier.height(8.dp))
-                    androidx.compose.material3.OutlinedButton(
-                        onClick = {
-                            vm.setPersonStatusById(lp.person.id, PersonStatus.ACTIVE)
-                            longPressPerson = null
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(stringResource(R.string.filter_active), color = MaterialTheme.colorScheme.primary)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    androidx.compose.material3.OutlinedButton(
-                        onClick = {
-                            vm.setPersonStatusById(lp.person.id, PersonStatus.ARCHIVED)
-                            longPressPerson = null
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(stringResource(R.string.filter_archived), color = MaterialTheme.colorScheme.primary)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    androidx.compose.material3.OutlinedButton(
-                        onClick = {
-                            vm.setPersonStatusById(lp.person.id, PersonStatus.SETTLED)
-                            longPressPerson = null
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(stringResource(R.string.filter_settled), color = MaterialTheme.colorScheme.primary)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    TextButton(
-                        onClick = {
-                            confirmDeletePerson = lp.person
-                            longPressPerson = null
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            stringResource(R.string.delete_person_btn),
-                            color = com.example.netije.ui.theme.NegativeRed
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { longPressPerson = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
-        )
     }
 
     val dp = confirmDeletePerson
@@ -507,7 +437,7 @@ private fun loadContactFromUri(ctx: android.content.Context, uri: Uri): Person? 
                 emails = emails,
                 avatarUrl = photo,
                 contactLookupUri = lookupUri,
-                status = PersonStatus.ACTIVE
+                status = com.example.netije.domain.model.PersonStatus.ACTIVE
             )
         }
     }

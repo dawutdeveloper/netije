@@ -44,3 +44,19 @@ test('metadata edits and old clients preserve existing history', async () => {
   assert.deepEqual(current.changes, previous);
   assert.equal(current.note, 'Updated');
 });
+
+test('transaction status round-trips through editing and sync without changing amounts or people', async () => {
+  const { current, service } = fixture();
+  for (const status of ['ARCHIVED', 'SETTLED', 'ACTIVE']) {
+    await service.update({ id: 'owner' }, current.id, { ...current, status });
+    assert.equal(current.status, status);
+    assert.equal(current.amount, 100);
+    assert.equal(current.personId, 'person');
+    assert.deepEqual(current.changes, []);
+    await service.upsertMany({ id: 'owner' }, [{ ...current, status }]);
+    assert.equal(current.status, status);
+  }
+  current.status = 'ARCHIVED';
+  await service.update({ id: 'owner' }, current.id, { ...current, status: undefined });
+  assert.equal(current.status, 'ARCHIVED');
+});

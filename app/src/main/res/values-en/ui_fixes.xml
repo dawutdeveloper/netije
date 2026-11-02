@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_back">Back</string>
+    <string name="expand_transactions">Expand transactions</string>
+    <string name="collapse_transactions">Collapse transactions</string>
+    <string name="expand_calendar">Expand calendar</string>
+    <string name="collapse_calendar">Collapse calendar</string>
+    <string name="add_person_accessibility">Add person</string>
+    <string name="add_transaction_accessibility">Add transaction</string>
+    <string name="transaction_status_change">Move transaction</string>
+    <string name="transaction_status_hint">Choose a status for this transaction. Other transactions and the saved person stay unchanged.</string>
+    <string name="save_failed">Could not save. Please try again.</string>
+    <string name="validation_name">Enter a name.</string>
+    <string name="validation_contact">Select a contact.</string>
+    <string name="validation_amount">Enter a positive amount with at most two decimal places. Check any pasted separators.</string>
+    <string name="edit_person_title">Edit person</string>
+    <string name="edit_transaction_title">Edit transaction</string>
+    <string name="backup_import">Import backup</string>
+    <string name="backup_import_title">Import saved backup?</string>
+    <string name="backup_import_explanation">Records will be merged by ID. Newer records on this phone are kept, and existing information is not erased. A recovery copy is saved before import.</string>
+    <string name="backup_import_success">Import complete: %1$d records added or updated.</string>
+    <string name="backup_import_failed">Could not import this backup. Check that it is a valid Netije backup. Your existing records have been kept.</string>
+    <string name="backup_export_file">Save backup to a file</string>
+    <string name="backup_export_success">Backup saved. Transfer this file to your other phone and choose Import backup.</string>
+    <string name="backup_transfer_hint">Save a backup file to transfer your records, photos, and attachments to another phone. Older backups can only restore files they contain.</string>
+    <string name="backup_schedule_saved">Backup saved and automatic backups scheduled. Android may delay background backups. Save a file separately to transfer it to another phone.</string>
+    <string name="backup_auto_schedule">Automatic backups</string>
+    <string name="backup_local_files">Backups saved on this phone</string>
+    <string name="backup_no_files">No backups have been saved on this phone yet.</string>
+    <string name="backup_missing_files">%1$d referenced files were unavailable and could not be included. The records were saved. Keep the originals if you still have them.</string>
+</resources>

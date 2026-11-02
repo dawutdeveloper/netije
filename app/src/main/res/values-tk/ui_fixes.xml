@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_back">Yza</string>
+    <string name="expand_transactions">Amallary giňelt</string>
+    <string name="collapse_transactions">Amallary ýygna</string>
+    <string name="expand_calendar">Senenamany giňelt</string>
+    <string name="collapse_calendar">Senenamany ýygna</string>
+    <string name="add_person_accessibility">Adam goş</string>
+    <string name="add_transaction_accessibility">Amal goş</string>
+    <string name="transaction_status_change">Amaly geçir</string>
+    <string name="transaction_status_hint">Bu amalyň ýagdaýyny saýlaň. Beýleki amallar we adam üýtgemez.</string>
+    <string name="save_failed">Ýatda saklap bolmady. Gaýtadan synanyşyň.</string>
+    <string name="validation_name">Adyny giriziň.</string>
+    <string name="validation_contact">Adamy saýlaň.</string>
+    <string name="validation_amount">Iki onluk belgiden köp bolmadyk oňyn mukdary giriziň. Bölüjileri barlaň.</string>
+    <string name="edit_person_title">Adamy üýtget</string>
+    <string name="edit_transaction_title">Amaly üýtget</string>
+    <string name="backup_import">Ätiýaçlyk nusgany import et</string>
+    <string name="backup_import_title">Saklanan nusgany import etmelimi?</string>
+    <string name="backup_import_explanation">Ýazgylar ID boýunça birleşdiriler. Bu telefondaky täze ýazgylar saklanar, maglumatlar pozulmaz. Importdan öň dikeldiş nusgasy dörediler.</string>
+    <string name="backup_import_success">Import tamamlandy: %1$d ýazgy goşuldy ýa-da täzelendi.</string>
+    <string name="backup_import_failed">Nusgany import edip bolmady. Dogry Netije nusgasyny saýlaň. Öňki ýazgylar saklandy.</string>
+    <string name="backup_export_file">Nusgany faýla sakla</string>
+    <string name="backup_export_success">Nusga saklandy. Faýly başga telefona geçiriň we import etmegi saýlaň.</string>
+    <string name="backup_transfer_hint">Ýazgylary, suratlary we goşundylary başga telefona geçirmek üçin nusgany faýla saklaň. Köne nusgalar diňe içindäki faýllary dikeldip biler.</string>
+    <string name="backup_schedule_saved">Nusga saklandy we awtomatik nusgalar meýilleşdirildi. Android fon nusgalaryny gijikdirip biler. Başga telefona geçirmek üçin aýratyn faýl saklaň.</string>
+    <string name="backup_auto_schedule">Awtomatik nusgalar</string>
+    <string name="backup_local_files">Bu telefonda saklanan nusgalar</string>
+    <string name="backup_no_files">Bu telefonda heniz nusga saklanmady.</string>
+    <string name="backup_missing_files">%1$d faýl elýeterli däldi we nusga goşulmady. Ýazgylar saklandy. Asyl faýllar bar bolsa, olary saklaň.</string>
+</resources>

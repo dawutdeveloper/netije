@@ -58,6 +58,13 @@ class TransactionChangesTest {
         assertEquals("Updated", repo.transaction!!.note)
     }
 
+    @Test fun editingAnArchivedTransactionPreservesItsStatus() = runBlocking {
+        val repo = Repository(original().copy(status = com.example.netije.domain.model.TransactionStatus.ARCHIVED))
+        SaveTransactionUseCase(repo)(original().copy(amount = 120.0))
+        assertEquals(com.example.netije.domain.model.TransactionStatus.ARCHIVED, repo.transaction!!.status)
+        assertEquals(120.0, repo.transaction!!.amount, 0.0)
+    }
+
     @Test fun newTransactionHasNoEditHistoryAndUsesTmt() = runBlocking {
         val repo = Repository()
         SaveTransactionUseCase(repo)(original().copy(id = "", currency = "USD"))

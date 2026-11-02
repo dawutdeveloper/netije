@@ -65,11 +65,7 @@ interface PersonDao {
     suspend fun upsertRemoteAll(persons: List<PersonEntity>) {
         persons.forEach { remote ->
             val local = getById(remote.id)
-            upsert(if (local?.statusPending == true) remote.copy(
-                status = local.status,
-                updatedAt = local.updatedAt,
-                statusPending = true
-            ) else remote)
+            upsert(if (local?.statusPending == true) local else remote)
         }
     }
 
@@ -79,6 +75,26 @@ interface PersonDao {
 
 @Dao
 interface TransactionDao {
+    @Query("UPDATE transactions SET status = :status, statusPending = 1, updatedAt = :now WHERE id = :id")
+    suspend fun setStatus(id: String, status: String, now: Long = System.currentTimeMillis())
+
+    @Query("SELECT * FROM transactions WHERE statusPending = 1")
+    suspend fun pendingStatuses(): List<TransactionEntity>
+
+    @Query("UPDATE transactions SET statusPending = 0 WHERE id = :id AND status = :status AND updatedAt = :updatedAt")
+    suspend fun acknowledgeStatus(id: String, status: String, updatedAt: Long)
+
+    @androidx.room.Transaction
+    suspend fun upsertRemoteAll(transactions: List<TransactionEntity>) {
+        transactions.forEach { remote ->
+            val local = getById(remote.id)
+            val history = (local?.toDomain()?.changes.orEmpty() + remote.toDomain().changes)
+                .distinctBy { it.id }.sortedBy { it.changedAt }
+            val selected = if (local?.statusPending == true) local else remote
+            upsert(selected.copy(changes = com.google.gson.Gson().toJson(history)))
+        }
+    }
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(transaction: TransactionEntity)
 

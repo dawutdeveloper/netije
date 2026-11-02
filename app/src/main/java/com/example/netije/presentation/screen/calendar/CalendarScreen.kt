@@ -125,10 +125,10 @@ fun CalendarScreen(
     val year by vm.year.collectAsState()
     val month by vm.month.collectAsState()
     val selected by vm.selectedDate.collectAsState()
+    val status by vm.statusFilter.collectAsState()
     val settingsState by settingsVm.state.collectAsState()
     val currency = settingsState.settings.currencyCode
     var calendarExpanded by remember { mutableStateOf(true) }
-    var longPressPerson: Person? by remember { mutableStateOf(null) }
     var confirmDeletePerson: Person? by remember { mutableStateOf(null) }
 
     val dayMap: Map<Long, Pair<Double, Double>> = groups.associate { d ->
@@ -223,6 +223,10 @@ fun CalendarScreen(
                 )
             }
 
+            com.example.netije.presentation.component.TransactionStatusFilter(
+                selected = status, onSelect = { vm.statusFilter.value = it },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
             DayDetailsPanel(
                 selectedDate = selected,
                 groups = groups,
@@ -241,7 +245,7 @@ fun CalendarScreen(
                     nav.navigate(Routes.personDetail(personId))
                 },
                 onPersonLongClick = { person ->
-                    longPressPerson = person
+                    confirmDeletePerson = person
                 }
             )
             Spacer(Modifier.height(120.dp))
@@ -252,75 +256,6 @@ fun CalendarScreen(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 22.dp, bottom = 24.dp)
-        )
-    }
-
-    val lp = longPressPerson
-    if (lp != null) {
-        AlertDialog(
-            onDismissRequest = { longPressPerson = null },
-            title = { Text(lp.name) },
-            text = {
-                Column {
-                    val statusRes = when (lp.status) {
-                        PersonStatus.ACTIVE -> R.string.filter_active
-                        PersonStatus.ARCHIVED -> R.string.filter_archived
-                        PersonStatus.SETTLED -> R.string.filter_settled
-                    }
-                    Text(stringResource(statusRes))
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
-                        onClick = {
-                            vm.setPersonStatusById(lp.id, PersonStatus.ACTIVE)
-                            longPressPerson = null
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(stringResource(R.string.filter_active), color = MaterialTheme.colorScheme.primary)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    OutlinedButton(
-                        onClick = {
-                            vm.setPersonStatusById(lp.id, PersonStatus.ARCHIVED)
-                            longPressPerson = null
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(stringResource(R.string.filter_archived), color = MaterialTheme.colorScheme.primary)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    OutlinedButton(
-                        onClick = {
-                            vm.setPersonStatusById(lp.id, PersonStatus.SETTLED)
-                            longPressPerson = null
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(stringResource(R.string.filter_settled), color = MaterialTheme.colorScheme.primary)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    TextButton(
-                        onClick = {
-                            confirmDeletePerson = lp
-                            longPressPerson = null
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            stringResource(R.string.delete_person_btn),
-                            color = NegativeRed
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { longPressPerson = null }) {
-                    Text(stringResource(R.string.cancel))
-                }
-            }
         )
     }
 
@@ -490,7 +425,7 @@ private fun DayDetailsPanel(
             IconButton(onClick = onToggleCalendar) {
                 Icon(
                     imageVector = if (calendarExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null,
+                    contentDescription = stringResource(if (calendarExpanded) R.string.collapse_calendar else R.string.expand_calendar),
                     tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(30.dp)
                 )
@@ -592,7 +527,7 @@ private fun DayDetailsPanel(
                                     }) {
                                         androidx.compose.material3.Icon(
                                             imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                            contentDescription = null,
+                                            contentDescription = stringResource(if (expanded) R.string.collapse_transactions else R.string.expand_transactions),
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }

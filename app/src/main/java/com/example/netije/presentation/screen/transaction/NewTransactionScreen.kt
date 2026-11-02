@@ -77,7 +77,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.example.netije.R
-import com.example.netije.di.PickedPersonForTxHolder
 import com.example.netije.domain.model.TransactionType
 import com.example.netije.presentation.component.SegmentedTypeControl
 import com.example.netije.presentation.navigation.Routes
@@ -98,7 +97,7 @@ import java.util.Locale
 fun NewTransactionScreen(
     nav: NavController,
     preselectedPersonId: String? = null,
-    presetDate: Long? = null,
+    pickerState: androidx.lifecycle.SavedStateHandle? = null,
     vm: NewTransactionViewModel = hiltViewModel()
 ) {
     val ctx = LocalContext.current
@@ -115,29 +114,16 @@ fun NewTransactionScreen(
     val attachments by vm.attachments.collectAsState()
     val ready by vm.ready.collectAsState()
     var saving by remember { mutableStateOf(false) }
-    val personsListState = vm.personsList.collectAsState()
+    var submitted by remember { mutableStateOf(false) }
+    var saveFailed by remember { mutableStateOf(false) }
 
-    // Preselections from navigation arguments (applied once on first composition)
-    LaunchedEffect(Unit) {
-        if (preselectedPersonId != null && pid.isNullOrBlank()) {
-            val list = personsListState.value
-            val match = list.firstOrNull { it.person.id == preselectedPersonId }
-            vm.preselectPerson(preselectedPersonId, match?.person?.name)
-        }
-        if (presetDate != null && presetDate > 0) {
-            vm.presetDate(presetDate)
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════════════
-    //  Consume picker result from SelectContactScreen after user picks a
-    //  person and presses back (NavController popBackStack triggers recomposition).
-    // ══════════════════════════════════════════════════════════════════════
-    LaunchedEffect(pid) {
-        PickedPersonForTxHolder.consume()?.let { (id, nm) ->
-            if (id.isNotBlank()) {
-                vm.preselectPerson(id, nm)
-            }
+    // Navigation arguments initialize the ViewModel once; picker results update its draft.
+    val picked by (pickerState?.getStateFlow<ArrayList<String>?>("picked_person", null)
+        ?: kotlinx.coroutines.flow.MutableStateFlow<ArrayList<String>?>(null)).collectAsState()
+    LaunchedEffect(picked) {
+        picked?.takeIf { it.size == 2 }?.let { value ->
+            vm.preselectPerson(value[0], value[1])
+            pickerState?.set<ArrayList<String>?>("picked_person", null)
         }
     }
 
@@ -203,15 +189,16 @@ fun NewTransactionScreen(
             customOption
         )
     }
+    var customPurpose by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     val selectedPreset = purposePresets.firstOrNull { it == purpose && it != customOption }
-    val showCustomField = purpose.isBlank() || purpose == customOption || selectedPreset == null
+    val showCustomField = customPurpose || purpose.isBlank() || selectedPreset == null
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        stringResource(R.string.new_tx_title),
+                        stringResource(if (vm.isEditing) R.string.edit_transaction_title else R.string.new_tx_title),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -220,7 +207,7 @@ fun NewTransactionScreen(
                 navigationIcon = {
                     IconButton(onClick = { nav.popBackStack() }) {
                         Icon(
-                            Icons.Default.ArrowBack, null,
+                            Icons.Default.ArrowBack, contentDescription = stringResource(R.string.nav_back),
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(30.dp)
                         )
@@ -400,9 +387,11 @@ fun NewTransactionScreen(
                                     selected = isSelected,
                                     onClick = {
                                         if (preset != customOption) {
+                                            customPurpose = false
                                             vm.purpose.value = preset
                                         } else {
-                                            vm.purpose.value = customOption
+                                            customPurpose = true
+                                            vm.purpose.value = ""
                                         }
                                     },
                                     label = {
@@ -418,7 +407,7 @@ fun NewTransactionScreen(
                         if (showCustomField) {
                             Spacer(Modifier.height(10.dp))
                             NetijeTextField(
-                                value = if (purpose == customOption) "" else purpose,
+                                value = purpose,
                                 placeholder = stringResource(R.string.tx_purpose_hint),
                                 onValueChange = { vm.purpose.value = it }
                             )
@@ -560,7 +549,7 @@ fun NewTransactionScreen(
                                         IconButton(
                                             onClick = { vm.removeAttachment(idx) },
                                             modifier = Modifier
-                                                .size(20.dp)
+                                                .size(48.dp)
                                                 .align(Alignment.TopEnd)
                                                 .background(
                                                     color = MaterialTheme.colorScheme.surface,
@@ -580,6 +569,9 @@ fun NewTransactionScreen(
                         }
                     }
                 }
+                if (submitted && pid.isNullOrBlank()) Text(stringResource(R.string.validation_contact), color = MaterialTheme.colorScheme.error)
+                if (submitted && com.example.netije.domain.model.parseMoney(amount) == null) Text(stringResource(R.string.validation_amount), color = MaterialTheme.colorScheme.error)
+                if (saveFailed) Text(stringResource(R.string.save_failed), color = MaterialTheme.colorScheme.error)
                 Spacer(Modifier.height(120.dp))
             }
 
@@ -593,11 +585,20 @@ fun NewTransactionScreen(
                     enabled = ready && !saving && importingAttachments == 0,
                     onClick = {
                         scope.launch {
+                            submitted = true
+                            saveFailed = false
+                            if (pid.isNullOrBlank() || com.example.netije.domain.model.parseMoney(amount) == null) {
+                                val message = if (pid.isNullOrBlank()) R.string.validation_contact else R.string.validation_amount
+                                android.widget.Toast.makeText(ctx, ctx.getString(message), android.widget.Toast.LENGTH_LONG).show()
+                                return@launch
+                            }
                             saving = true
                             try {
                                 val id = vm.save()
                                 if (id != null) nav.popBackStack()
-                            } finally {
+                            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                            catch (_: Exception) { saveFailed = true; android.widget.Toast.makeText(ctx, ctx.getString(R.string.save_failed), android.widget.Toast.LENGTH_LONG).show() }
+                            finally {
                                 saving = false
                             }
                         }

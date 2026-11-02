@@ -90,6 +90,8 @@ fun PersonDetailScreen(
     val df = remember(locale) { SimpleDateFormat("dd MMM yyyy", locale) }
     val currency = settingsState.settings.currencyCode
     var deleteDialog by remember { mutableStateOf(false) }
+    var transactionStatus by remember { mutableStateOf<com.example.netije.domain.model.TransactionStatus?>(com.example.netije.domain.model.TransactionStatus.ACTIVE) }
+    val transactions = state.transactions.filter { transactionStatus == null || it.status == transactionStatus }
     val person = state.person
 
     if (deleteDialog) {
@@ -128,7 +130,7 @@ fun PersonDetailScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { nav.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.nav_back), tint = MaterialTheme.colorScheme.onSurface)
                     }
                 },
                 actions = {
@@ -168,7 +170,7 @@ fun PersonDetailScreen(
                     contentColor = Color.White,
                     shape = RoundedCornerShape(24.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(28.dp))
+                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_transaction_accessibility), modifier = Modifier.size(28.dp))
                 }
             }
         }
@@ -266,39 +268,6 @@ fun PersonDetailScreen(
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(Modifier.height(12.dp))
-                        Text(stringResource(R.string.person_status), style = MaterialTheme.typography.labelLarge)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FilterChip(
-                                selected = person?.status == PersonStatus.ACTIVE,
-                                enabled = person != null,
-                                onClick = { vm.setStatus(PersonStatus.ACTIVE) },
-                                label = { Text(stringResource(R.string.filter_active)) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
-                            FilterChip(
-                                selected = person?.status == PersonStatus.ARCHIVED,
-                                enabled = person != null,
-                                onClick = { vm.setStatus(PersonStatus.ARCHIVED) },
-                                label = { Text(stringResource(R.string.filter_archived)) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
-                            FilterChip(
-                                selected = person?.status == PersonStatus.SETTLED,
-                                enabled = person != null,
-                                onClick = { vm.setStatus(PersonStatus.SETTLED) },
-                                label = { Text(stringResource(R.string.filter_settled)) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = PositiveGreen,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
-                        }
                         if (person?.city?.isNotBlank() == true || person?.address?.isNotBlank() == true) {
                             Spacer(Modifier.height(10.dp))
                             person.city?.let {
@@ -311,8 +280,9 @@ fun PersonDetailScreen(
                     }
                 }
             }
-            item { SectionHeader(text = "${stringResource(R.string.transactions_header)} (${state.transactions.size})") }
-            if (state.transactions.isEmpty()) {
+            item { com.example.netije.presentation.component.TransactionStatusFilter(transactionStatus, { transactionStatus = it }) }
+            item { SectionHeader(text = "${stringResource(R.string.transactions_header)} (${transactions.size})") }
+            if (transactions.isEmpty()) {
                 item {
                     Box(
                         modifier = Modifier
@@ -324,7 +294,7 @@ fun PersonDetailScreen(
                     }
                 }
             } else {
-                items(state.transactions) { tx ->
+                items(transactions, key = { it.id }) { tx ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),

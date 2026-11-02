@@ -165,7 +165,7 @@ class PersonStatusTest {
         val dao = MemoryDao()
         dao.setStatus("person", "SETTLED", 10)
         dao.upsertRemoteAll(listOf(PersonEntity(id = "person", name = "Updated remotely", status = "ACTIVE", updatedAt = 20)))
-        assertEquals("Updated remotely", dao.value.value!!.name)
+        assertEquals("Name", dao.value.value!!.name)
         assertEquals("SETTLED", dao.value.value!!.status)
         assertEquals(10L, dao.value.value!!.updatedAt)
         assertTrue(dao.value.value!!.statusPending)
