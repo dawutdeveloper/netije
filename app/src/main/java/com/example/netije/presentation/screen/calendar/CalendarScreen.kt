@@ -158,6 +158,8 @@ fun CalendarScreen(
                     }
                     Text(
                         text = formatMonthStandalone(year, month, locale),
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold
@@ -167,49 +169,9 @@ fun CalendarScreen(
                     }
                 }
                 Spacer(Modifier.height(10.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            stringResource(R.string.summary_received),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        AmountText(
-                            summary.totalReceived, TransactionType.RECEIVED,
-                            currency = currency,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            stringResource(R.string.summary_issued),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        AmountText(
-                            summary.totalIssued, TransactionType.ISSUED,
-                            currency = currency,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                        Text(
-                            stringResource(R.string.summary_balance),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        BalanceAmountText(summary.balance, currency = currency, style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
+                com.example.netije.presentation.component.FinanceSummaryContent(
+                    summary.totalReceived, summary.totalIssued, summary.balance, currency
+                )
                 Spacer(Modifier.height(16.dp))
             }
 
@@ -327,7 +289,7 @@ private fun CalendarGrid(
             ) {
                 week.forEach { dayOfMonth ->
                     if (dayOfMonth == null) {
-                        Spacer(modifier = Modifier.weight(1f).height(82.dp))
+                        Spacer(modifier = Modifier.weight(1f).heightIn(min = 72.dp))
                     } else {
                         val c = Calendar.getInstance().apply {
                             set(year, month, dayOfMonth, 0, 0, 0)
@@ -341,7 +303,7 @@ private fun CalendarGrid(
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .height(82.dp)
+                                .heightIn(min = 72.dp)
                                 .padding(vertical = 3.dp)
                                 .clip(RoundedCornerShape(14.dp))
                                 .then(
@@ -355,7 +317,7 @@ private fun CalendarGrid(
                                     interactionSource = interaction,
                                     indication = null
                                 )
-                                .padding(6.dp),
+                                .padding(horizontal = 2.dp, vertical = 6.dp),
                             contentAlignment = Alignment.TopCenter
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -378,7 +340,8 @@ private fun CalendarGrid(
                                         style = MaterialTheme.typography.bodySmall,
                                         color = netColor,
                                         fontWeight = FontWeight.SemiBold,
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                     )
                                 }
                             }
@@ -435,9 +398,9 @@ private fun DayDetailsPanel(
         Column(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Spacer(Modifier.height(14.dp))
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Column {
                         Text(
@@ -452,7 +415,6 @@ private fun DayDetailsPanel(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Spacer(Modifier.weight(1f))
                     BalanceAmountText(dayTotal, currency = currency, style = MaterialTheme.typography.titleLarge)
                 }
                 Spacer(Modifier.height(10.dp))

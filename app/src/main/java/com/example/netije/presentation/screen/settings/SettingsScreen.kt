@@ -8,6 +8,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -364,17 +367,18 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                                     )
                                 }
                                 Spacer(Modifier.width(14.dp))
-                                Text(
-                                    text = stringResource(R.string.settings_language),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = state.settings.language.displayName,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.settings_language),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = state.settings.language.displayName,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                                 Spacer(Modifier.width(6.dp))
                                 Icon(
                                     imageVector = Icons.Default.KeyboardArrowRight,
@@ -414,22 +418,23 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                                     )
                                 }
                                 Spacer(Modifier.width(14.dp))
-                                Text(
-                                    text = stringResource(R.string.settings_darkmode),
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Text(
-                                    text = when (state.settings.darkMode) {
-                                        DarkModeConfig.ON -> stringResource(R.string.darkmode_short_on)
-                                        DarkModeConfig.OFF -> stringResource(R.string.darkmode_short_off)
-                                        DarkModeConfig.SYSTEM -> stringResource(R.string.darkmode_short_system)
-                                        else -> "—"
-                                    },
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        text = stringResource(R.string.settings_darkmode),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = when (state.settings.darkMode) {
+                                            DarkModeConfig.ON -> stringResource(R.string.darkmode_short_on)
+                                            DarkModeConfig.OFF -> stringResource(R.string.darkmode_short_off)
+                                            DarkModeConfig.SYSTEM -> stringResource(R.string.darkmode_short_system)
+                                            else -> "—"
+                                        },
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                                 Spacer(Modifier.width(6.dp))
                                 Icon(
                                     imageVector = Icons.Default.KeyboardArrowRight,
@@ -649,12 +654,13 @@ private fun BackupFrequencyDialog(
             )
         },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 BackupPreset.values().forEach { preset ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(44.dp)
+                            .heightIn(min = 48.dp)
                             .clickableNoRipple { selectedPreset = preset },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -672,10 +678,9 @@ private fun BackupFrequencyDialog(
                 }
                 if (selectedPreset == BackupPreset.CUSTOM) {
                     Spacer(Modifier.height(10.dp))
-                    Row(
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         OutlinedTextField(
                             value = customNumber,
@@ -683,14 +688,14 @@ private fun BackupFrequencyDialog(
                                 customNumber = v.filter { it.isDigit() }.take(4)
                             },
                             label = { Text(stringResource(R.string.backup_custom_amount)) },
-                            modifier = Modifier.width(130.dp),
+                            modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp)
                         )
                         ExposedDropdownMenuBox(
                             expanded = unitExpanded,
                             onExpandedChange = { unitExpanded = it },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             OutlinedTextField(
                                 value = when (customUnit) {

@@ -55,6 +55,8 @@ fun NetijeBottomBar(
                     Text(
                         text = stringResource(item.labelRes),
                         color = if (selected) PrimaryBlue else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         style = androidx.compose.material3.MaterialTheme.typography.labelSmall
                     )
                 },

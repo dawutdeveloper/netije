@@ -17,6 +17,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -129,7 +131,7 @@ fun NewTransactionScreen(
         }
     }
 
-    val dateFmt = remember(locale) { SimpleDateFormat("d MMM yyyy (EEE)", locale) }
+    val dateFmt = remember(locale) { SimpleDateFormat("dd.MM.yyyy", locale) }
     val timeFmt = remember { SimpleDateFormat("HH.mm", Locale.ROOT) }
 
     var showAttachSheet by remember { mutableStateOf(false) }
@@ -211,7 +213,7 @@ fun NewTransactionScreen(
                         Icon(
                             Icons.Default.ArrowBack, contentDescription = stringResource(R.string.nav_back),
                             tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(30.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 },
@@ -226,6 +228,7 @@ fun NewTransactionScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(pad)
+                .imePadding()
         ) {
             Column(
                 modifier = Modifier
@@ -281,17 +284,19 @@ fun NewTransactionScreen(
                 Spacer(Modifier.height(20.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
                         stringResource(R.string.tx_date),
-                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
                         stringResource(R.string.tx_time),
-                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.weight(0.7f),
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -529,7 +534,7 @@ fun NewTransactionScreen(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(120.dp)
+                                .heightIn(min = 88.dp)
                                 .padding(top = 6.dp)
                                 .clip(RoundedCornerShape(18.dp))
                                 .background(MaterialTheme.colorScheme.surface)
@@ -543,12 +548,13 @@ fun NewTransactionScreen(
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(12.dp)
                             ) {
                                 Icon(
                                     Icons.Default.AttachFile,
                                     null,
-                                    modifier = Modifier.size(48.dp),
+                                    modifier = Modifier.size(28.dp),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Spacer(Modifier.height(8.dp))
@@ -660,7 +666,7 @@ fun NewTransactionScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(62.dp),
+                        .heightIn(min = 48.dp),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -669,7 +675,7 @@ fun NewTransactionScreen(
                 ) {
                     Text(
                         stringResource(R.string.save),
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -773,7 +779,7 @@ fun NewTransactionScreen(
 private fun LabeledRow(label: String, content: @Composable () -> Unit) {
     Text(
         text = label,
-        style = MaterialTheme.typography.titleLarge,
+        style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.onSurface,
         fontWeight = FontWeight.SemiBold
     )
@@ -818,7 +824,8 @@ private fun ClickableField(
             style = MaterialTheme.typography.bodyLarge,
             color = textColor,
             modifier = Modifier.weight(1f),
-            maxLines = 1
+            maxLines = 2,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
         )
         if (trailing != null) trailing()
     }

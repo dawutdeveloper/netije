@@ -151,26 +151,9 @@ fun ReportSummaryScreen(
                         Spacer(Modifier.height(14.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(Modifier.height(10.dp))
-                        Row(Modifier.fillMaxWidth()) {
-                            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(stringResource(R.string.tx_received), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    AmountText(state.totalReceived, com.example.netije.domain.model.TransactionType.RECEIVED, currency = currency, style = MaterialTheme.typography.titleMedium)
-                                }
-                            }
-                            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(stringResource(R.string.tx_issued), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    AmountText(state.totalIssued, com.example.netije.domain.model.TransactionType.ISSUED, currency = currency, style = MaterialTheme.typography.titleMedium)
-                                }
-                            }
-                            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(stringResource(R.string.report_total), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    BalanceAmountText(state.totalBalance, currency = currency, style = MaterialTheme.typography.titleMedium)
-                                }
-                            }
-                        }
+                        com.example.netije.presentation.component.FinanceSummaryContent(
+                            state.totalReceived, state.totalIssued, state.totalBalance, currency
+                        )
                     }
                 }
             }
@@ -197,14 +180,15 @@ fun ReportSummaryScreen(
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(row.person.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                                BalanceAmountText(row.balance, currency = currency, style = MaterialTheme.typography.titleMedium)
                                 Text("${row.count} " + stringResource(R.string.report_operations_count), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, fontSize = 12.sp)
-                                Row {
+                                Column {
                                     AmountText(row.received, com.example.netije.domain.model.TransactionType.RECEIVED, currency = currency, style = MaterialTheme.typography.bodySmall)
-                                    Spacer(Modifier.width(4.dp))
+                                    Spacer(Modifier.height(4.dp))
                                     AmountText(row.issued, com.example.netije.domain.model.TransactionType.ISSUED, currency = currency, style = MaterialTheme.typography.bodySmall)
                                 }
                             }
-                            BalanceAmountText(row.balance, currency = currency, style = MaterialTheme.typography.titleMedium)
+
                         }
                     }
                 }

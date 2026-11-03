@@ -245,10 +245,9 @@ fun TransactionDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // Amount
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
                                 stringResource(if (state.subTransactions.isEmpty()) R.string.transaction_detail_amount else R.string.current_balance),
@@ -268,10 +267,9 @@ fun TransactionDetailScreen(
                         }
                         // Person
                         val person = state.person
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
                                 stringResource(R.string.transaction_detail_person),
@@ -297,6 +295,7 @@ fun TransactionDetailScreen(
                                     Spacer(Modifier.width(8.dp))
                                     Text(
                                         text = person.name,
+                                        modifier = Modifier.weight(1f),
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -328,10 +327,9 @@ fun TransactionDetailScreen(
                             }
                         }
                         // Type chip
-                        Row(
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Text(
                                 stringResource(if (state.subTransactions.isEmpty()) R.string.transaction_detail_type else R.string.initial_entry_type),
@@ -593,10 +591,9 @@ fun TransactionDetailScreen(
 
 @Composable
 private fun InfoRow(label: String, value: String) {
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
             text = label,

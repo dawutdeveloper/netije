@@ -9,13 +9,17 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -164,7 +168,7 @@ fun NetijeFilterChip(
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(text = label, fontWeight = FontWeight.SemiBold) },
+        label = { Text(text = label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold) },
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
         colors = FilterChipDefaults.filterChipColors(
@@ -250,50 +254,27 @@ fun TransactionRow(
                 .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val divider = androidx.compose.foundation.layout.Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(40.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant)
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    stringResource(if (subTransactions.isEmpty()) R.string.tx_price else balanceLabelRes) + ":",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
+                    stringResource(if (subTransactions.isEmpty()) R.string.tx_price else balanceLabelRes),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(Modifier.height(6.dp))
                 if (subTransactions.isEmpty()) {
-                    AmountText(t.amount, t.type, currency = currency, style = MaterialTheme.typography.titleLarge)
+                    AmountText(t.amount, t.type, currency = currency)
                 } else {
                     BalanceAmountText(
                         amount = com.example.netije.domain.model.TransactionGroup(t, subTransactions).balance,
-                        currency = currency,
-                        style = MaterialTheme.typography.titleLarge
+                        currency = currency
                     )
                 }
-            }
-            Spacer(Modifier.width(12.dp))
-            divider
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.tx_purpose) + ":",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(transactionStatusLabel(t.status), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    text = purpose.takeIf { !it.isNullOrBlank() } ?: "—",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Text(transactionStatusLabel(t.status), style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary)
+                if (!purpose.isNullOrBlank()) {
+                    Text(text = purpose, style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface, maxLines = 2,
+                        overflow = TextOverflow.Ellipsis)
+                }
             }
             if (onEditClick != null) {
                 IconButton(onClick = onEditClick) {
@@ -403,12 +384,12 @@ fun PersonFAB(
 ) {
     FloatingActionButton(
         onClick = onClick,
-        modifier = modifier.size(72.dp),
+        modifier = modifier.size(56.dp),
         containerColor = PrimaryBlue,
         contentColor = Color.White,
-        shape = RoundedCornerShape(24.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.add_person_accessibility), modifier = Modifier.size(32.dp))
+        Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.add_person_accessibility), modifier = Modifier.size(24.dp))
     }
 }
 
@@ -419,12 +400,12 @@ fun PlusFAB(
 ) {
     FloatingActionButton(
         onClick = onClick,
-        modifier = modifier.size(72.dp),
+        modifier = modifier.size(56.dp),
         containerColor = PrimaryBlue,
         contentColor = Color.White,
-        shape = RoundedCornerShape(24.dp)
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_transaction_accessibility), modifier = Modifier.size(34.dp))
+        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_transaction_accessibility), modifier = Modifier.size(24.dp))
     }
 }
 
@@ -440,6 +421,7 @@ fun SegmentedTypeControl(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .height(IntrinsicSize.Min)
             .clip(RoundedCornerShape(18.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
     ) {
@@ -471,6 +453,7 @@ private fun SegmentedOption(
     val shape = RoundedCornerShape(18.dp)
     Surface(
         modifier = modifier
+            .fillMaxHeight()
             .padding(4.dp)
             .clip(shape)
             .clickable(
@@ -485,9 +468,10 @@ private fun SegmentedOption(
             text = label,
             color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.SemiBold,
-            style = MaterialTheme.typography.titleSmall,
+            style = MaterialTheme.typography.labelLarge,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(vertical = 14.dp, horizontal = 8.dp)
+            modifier = Modifier.wrapContentHeight(Alignment.CenterVertically)
+                .heightIn(min = 48.dp).padding(vertical = 12.dp, horizontal = 8.dp)
         )
     }
 }
@@ -521,20 +505,12 @@ fun SettingsRowCard(
             ) { icon() }
             Spacer(Modifier.width(14.dp))
         }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(end = 6.dp)
-        )
+        Column(Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(text = title, style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface)
+            Text(text = value, style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Icon(
             imageVector = Icons.Default.KeyboardArrowRight,
             contentDescription = null,

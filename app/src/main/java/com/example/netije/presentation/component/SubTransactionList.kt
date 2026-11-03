@@ -34,8 +34,8 @@ fun SubTransactionList(children: List<Transaction>, original: Transaction, onCli
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("${dateFormatter.format(Date(child.date))} ${timeFormatter.format(Date(child.time))}", modifier = Modifier.weight(1f).padding(end = 8.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("${dateFormatter.format(Date(child.date))} ${timeFormatter.format(Date(child.time))}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     AmountText(child.amount, child.type, currency = "TMT", style = MaterialTheme.typography.titleMedium)
                 }
                 child.purpose?.takeIf { it.isNotBlank() }?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }

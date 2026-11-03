@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -145,7 +147,7 @@ fun NewPersonScreen(nav: NavController, vm: NewPersonViewModel = hiltViewModel()
                         Icon(
                             Icons.Default.ArrowBack, contentDescription = stringResource(R.string.nav_back),
                             tint = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.size(30.dp)
+                            modifier = Modifier.size(24.dp)
                         )
                     }
                 },
@@ -160,6 +162,7 @@ fun NewPersonScreen(nav: NavController, vm: NewPersonViewModel = hiltViewModel()
             modifier = Modifier
                 .fillMaxSize()
                 .padding(pad)
+                .imePadding()
         ) {
             LazyColumn(
                 modifier = Modifier
@@ -397,7 +400,7 @@ fun NewPersonScreen(nav: NavController, vm: NewPersonViewModel = hiltViewModel()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(62.dp),
+                        .heightIn(min = 48.dp),
                     shape = RoundedCornerShape(18.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -406,7 +409,7 @@ fun NewPersonScreen(nav: NavController, vm: NewPersonViewModel = hiltViewModel()
                 ) {
                     Text(
                         stringResource(R.string.save),
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -530,7 +533,7 @@ private fun takePersistableReadPermission(ctx: Context, uri: Uri) {
 private fun FormField(label: String) {
     Text(
         text = label,
-        style = MaterialTheme.typography.titleLarge,
+        style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.onBackground,
         fontWeight = FontWeight.SemiBold
     )

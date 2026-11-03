@@ -208,64 +208,9 @@ fun PersonDetailScreen(
                             }
                         }
                         Spacer(Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(
-                                modifier = Modifier.weight(0.3f),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    stringResource(R.string.tx_received),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontSize = 12.sp
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                AmountText(
-                                    amount = state.received,
-                                    type = TransactionType.RECEIVED,
-                                    currency = currency,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            }
-                            Column(
-                                modifier = Modifier.weight(0.3f),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    stringResource(R.string.tx_issued),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontSize = 12.sp
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                AmountText(
-                                    amount = state.issued,
-                                    type = TransactionType.ISSUED,
-                                    currency = currency,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                            }
-                            Column(
-                                modifier = Modifier.weight(0.4f),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    stringResource(R.string.summary_balance),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontSize = 12.sp
-                                )
-                                Spacer(Modifier.height(4.dp))
-                                BalanceAmountText(
-                                    state.balance,
-                                    currency = currency,
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                            }
-                        }
+                        com.example.netije.presentation.component.FinanceSummaryContent(
+                            state.received, state.issued, state.balance, currency
+                        )
                         Spacer(Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(Modifier.height(12.dp))

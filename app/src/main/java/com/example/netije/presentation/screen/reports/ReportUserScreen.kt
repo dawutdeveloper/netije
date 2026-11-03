@@ -247,52 +247,9 @@ fun ReportUserScreen(
                         Spacer(Modifier.height(14.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Spacer(Modifier.height(10.dp))
-                        Row(Modifier.fillMaxWidth()) {
-                            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        stringResource(R.string.tx_received),
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    com.example.netije.presentation.component.AmountText(
-                                        amount = state.received,
-                                        type = TransactionType.RECEIVED,
-                                        currency = currency,
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                }
-                            }
-                            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        stringResource(R.string.tx_issued),
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    com.example.netije.presentation.component.AmountText(
-                                        amount = state.issued,
-                                        type = TransactionType.ISSUED,
-                                        currency = currency,
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                }
-                            }
-                            Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        stringResource(R.string.summary_balance),
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    BalanceAmountText(
-                                        state.balance,
-                                        currency = currency,
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
-                                }
-                            }
-                        }
+                        com.example.netije.presentation.component.FinanceSummaryContent(
+                            state.received, state.issued, state.balance, currency
+                        )
                     }
                 }
             }

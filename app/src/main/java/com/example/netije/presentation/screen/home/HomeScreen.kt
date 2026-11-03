@@ -129,100 +129,6 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
             .background(MaterialTheme.colorScheme.background)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                Spacer(Modifier.height(16.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { nav.navigate(Routes.SETTINGS) }
-                    )
-                ) {
-                    val user = settingsState.user
-                    if (user != null) {
-                        NetijeAvatar(
-                            initials = user.displayName.firstOrNull()?.uppercase().toString(),
-                            name = user.displayName,
-                            size = 40.dp,
-                            photoUrl = user.photoUrl
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primaryContainer),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "A",
-                                color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-                        }
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    Text(
-                        text = user?.displayName ?: stringResource(R.string.signin_hint),
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Spacer(Modifier.height(18.dp))
-                val currency = settingsState.settings.currencyCode
-                HomeFinanceSummary(summary = state.summary, currency = currency)
-                Spacer(Modifier.height(20.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box {
-                        NetijeFilterChip(
-                            label = when (state.status) {
-                                TransactionStatus.ACTIVE -> stringResource(R.string.filter_active)
-                                TransactionStatus.ARCHIVED -> stringResource(R.string.filter_archived)
-                                TransactionStatus.SETTLED -> stringResource(R.string.filter_settled)
-                                null -> stringResource(R.string.filter_all)
-                            },
-                            selected = true,
-                            onClick = { filterExpanded.value = true }
-                        )
-                        DropdownMenu(
-                            expanded = filterExpanded.value,
-                            onDismissRequest = { filterExpanded.value = false }
-                        ) {
-                            listOf(TransactionStatus.ACTIVE, TransactionStatus.ARCHIVED, TransactionStatus.SETTLED, null).forEach { opt ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            when (opt) {
-                                                TransactionStatus.ACTIVE -> stringResource(R.string.filter_active)
-                                                TransactionStatus.ARCHIVED -> stringResource(R.string.filter_archived)
-                                                TransactionStatus.SETTLED -> stringResource(R.string.filter_settled)
-                                                else -> stringResource(R.string.filter_all)
-                                            }
-                                        )
-                                    },
-                                    onClick = {
-                                        vm.statusFilter.value = opt
-                                        filterExpanded.value = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    NetijeSearchBar(
-                        value = searchQuery,
-                        onValueChange = { vm.search.value = it }
-                    )
-                }
-                Spacer(Modifier.height(10.dp))
-            }
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -233,6 +139,104 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                     top = 8.dp, bottom = 120.dp
                 )
             ) {
+                item {
+                    Column(modifier = Modifier.padding(horizontal = 4.dp)) {
+                        Spacer(Modifier.height(16.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = { nav.navigate(Routes.SETTINGS) }
+                            )
+                        ) {
+                            val user = settingsState.user
+                            if (user != null) {
+                                NetijeAvatar(
+                                    initials = user.displayName.firstOrNull()?.uppercase().toString(),
+                                    name = user.displayName,
+                                    size = 40.dp,
+                                    photoUrl = user.photoUrl
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primaryContainer),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "A",
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.Bold,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                text = user?.displayName ?: stringResource(R.string.signin_hint),
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                style = MaterialTheme.typography.titleLarge,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Spacer(Modifier.height(18.dp))
+                        val currency = settingsState.settings.currencyCode
+                        HomeFinanceSummary(summary = state.summary, currency = currency)
+                        Spacer(Modifier.height(20.dp))
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box {
+                                NetijeFilterChip(
+                                    label = when (state.status) {
+                                        TransactionStatus.ACTIVE -> stringResource(R.string.filter_active)
+                                        TransactionStatus.ARCHIVED -> stringResource(R.string.filter_archived)
+                                        TransactionStatus.SETTLED -> stringResource(R.string.filter_settled)
+                                        null -> stringResource(R.string.filter_all)
+                                    },
+                                    selected = true,
+                                    onClick = { filterExpanded.value = true }
+                                )
+                                DropdownMenu(
+                                    expanded = filterExpanded.value,
+                                    onDismissRequest = { filterExpanded.value = false }
+                                ) {
+                                    listOf(TransactionStatus.ACTIVE, TransactionStatus.ARCHIVED, TransactionStatus.SETTLED, null).forEach { opt ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    when (opt) {
+                                                        TransactionStatus.ACTIVE -> stringResource(R.string.filter_active)
+                                                        TransactionStatus.ARCHIVED -> stringResource(R.string.filter_archived)
+                                                        TransactionStatus.SETTLED -> stringResource(R.string.filter_settled)
+                                                        else -> stringResource(R.string.filter_all)
+                                                    }
+                                                )
+                                            },
+                                            onClick = {
+                                                vm.statusFilter.value = opt
+                                                filterExpanded.value = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            NetijeSearchBar(
+                                value = searchQuery,
+                                onValueChange = { vm.search.value = it }
+                            )
+                        }
+                        Spacer(Modifier.height(10.dp))
+                    }
+                }
                 if (state.persons.isEmpty()) {
                     item {
                         Box(
