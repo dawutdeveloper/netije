@@ -52,7 +52,7 @@ private suspend fun TransactionDto.toLocalEntity(dao: TransactionDao): Transacti
     val local = id?.let { dao.getById(it) }
     val mergedChanges = (local?.toDomain()?.changes.orEmpty() + changes.orEmpty())
         .distinctBy { it.id }.sortedBy { it.changedAt }
-    val remote = toDomain().copy(changes = mergedChanges).toEntity()
+    val remote = toDomain().copy(changes = mergedChanges, parentTransactionId = parentTransactionId ?: local?.parentTransactionId).toEntity()
     return if (local?.statusPending == true) local.copy(changes = com.google.gson.Gson().toJson(mergedChanges))
     else if (status == null && local != null) remote.copy(status = local.status) else remote
 }

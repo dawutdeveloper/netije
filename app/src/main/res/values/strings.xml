@@ -230,4 +230,21 @@
     <string name="person_status">Статус</string>
     <string name="report_date_from">С %1$s</string>
     <string name="report_date_to">По %1$s</string>
+    <string name="add_sub_transaction">Добавить операцию</string>
+    <string name="edit_original_transaction">Исправить исходную</string>
+    <string name="sub_transaction_hint">Выберите добавление или списание, укажите сумму и примечание. После сохранения баланс обновится.</string>
+    <string name="sub_transactions">История операций</string>
+    <string name="sub_transaction_files">Вложения: %1$d</string>
+    <string name="original_transaction">Исходная операция</string>
+    <string name="transaction_delete_with_children">Будут удалены исходная операция и все связанные с ней операции.</string>
+    <string name="current_balance">Текущий баланс</string>
+    <string name="initial_entry">Начальная операция</string>
+    <string name="initial_entry_type">Тип начальной операции</string>
+    <string name="add_money">Добавить (+)</string>
+    <string name="subtract_money">Списать (−)</string>
+    <string name="amount_to_add">Сумма пополнения</string>
+    <string name="amount_to_subtract">Сумма списания</string>
+    <string name="balance_after_saving">Баланс после сохранения</string>
+    <string name="period_balance">Баланс за период</string>
+    <string name="day_balance">Баланс за день</string>
 </resources>

@@ -65,6 +65,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.netije.R
+import com.example.netije.domain.model.groupTransactions
 import com.example.netije.domain.model.Person
 import com.example.netije.domain.model.PersonWithTransactions
 import com.example.netije.domain.model.Transaction
@@ -229,69 +230,78 @@ fun TransactionRow(
     purpose: String?,
     onEditClick: (() -> Unit)? = null,
     onRowClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    subTransactions: List<Transaction> = emptyList(),
+    onSubTransactionClick: ((Transaction) -> Unit)? = null,
+    @androidx.annotation.StringRes balanceLabelRes: Int = R.string.current_balance
 ) {
     var showStatus by remember(t.id) { mutableStateOf(false) }
     if (showStatus) TransactionStatusDialog(t, onDismiss = { showStatus = false })
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(
-                Modifier.combinedClickable(
-                    onClick = onRowClick ?: {}, onLongClick = { showStatus = true },
-                    onLongClickLabel = stringResource(R.string.transaction_status_change)
+    Column {
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .then(
+                    Modifier.combinedClickable(
+                        onClick = onRowClick ?: {}, onLongClick = { showStatus = true },
+                        onLongClickLabel = stringResource(R.string.transaction_status_change)
+                    )
                 )
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        val divider = androidx.compose.foundation.layout.Box(
-            modifier = Modifier
-                .width(1.dp)
-                .height(40.dp)
-                .background(MaterialTheme.colorScheme.outlineVariant)
-        )
-        Column(
-            modifier = Modifier.weight(1f),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                stringResource(R.string.tx_price) + ":",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
+            val divider = androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(40.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant)
             )
-            Spacer(Modifier.height(6.dp))
-            AmountText(
-                amount = t.amount,
-                type = t.type,
-                currency = currency,
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        divider
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                stringResource(R.string.tx_purpose) + ":",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(transactionStatusLabel(t.status), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = purpose.takeIf { !it.isNullOrBlank() } ?: "—",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-        if (onEditClick != null) {
-            IconButton(onClick = onEditClick) {
-                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.transaction_detail_edit_btn), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    stringResource(if (subTransactions.isEmpty()) R.string.tx_price else balanceLabelRes) + ":",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(Modifier.height(6.dp))
+                if (subTransactions.isEmpty()) {
+                    AmountText(t.amount, t.type, currency = currency, style = MaterialTheme.typography.titleLarge)
+                } else {
+                    BalanceAmountText(
+                        amount = com.example.netije.domain.model.TransactionGroup(t, subTransactions).balance,
+                        currency = currency,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
+            }
+            Spacer(Modifier.width(12.dp))
+            divider
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    stringResource(R.string.tx_purpose) + ":",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(transactionStatusLabel(t.status), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = purpose.takeIf { !it.isNullOrBlank() } ?: "—",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (onEditClick != null) {
+                IconButton(onClick = onEditClick) {
+                    Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.transaction_detail_edit_btn), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
         }
+        SubTransactionList(subTransactions, t, onSubTransactionClick)
     }
 }
 
@@ -364,15 +374,19 @@ fun ExpandablePersonCard(
                         stringResource(R.string.no_transactions_yet),
                         modifier = Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    pwt.transactions.forEachIndexed { idx, t ->
+                    val groups = pwt.transactions.groupTransactions()
+                    groups.forEachIndexed { idx, group ->
+                        val t = group.transaction
                         TransactionRow(
                             t = t,
                             currency = currency,
                             purpose = t.purpose,
                             onEditClick = { onEditTransaction(t) },
-                            onRowClick = { onTransactionClick?.invoke(t) }
+                            onRowClick = { onTransactionClick?.invoke(t) },
+                            subTransactions = group.children,
+                            onSubTransactionClick = onTransactionClick
                         )
-                        if (idx < pwt.transactions.lastIndex) {
+                        if (idx < groups.lastIndex) {
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         }
                     }

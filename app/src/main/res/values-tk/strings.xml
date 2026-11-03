@@ -228,4 +228,21 @@
     <string name="person_status">Ýagdaý</string>
     <string name="report_date_from">%1$s seneden</string>
     <string name="report_date_to">%1$s çenli</string>
+    <string name="add_sub_transaction">Amal goşmak</string>
+    <string name="edit_original_transaction">Asyl amaly düzetmek</string>
+    <string name="sub_transaction_hint">Goşmagy ýa-da aýyrmagy saýlaň, möçberi we belligi ýazyň. Saklanandan soň balans täzelener.</string>
+    <string name="sub_transactions">Amallaryň taryhy</string>
+    <string name="sub_transaction_files">Goşundylar: %1$d</string>
+    <string name="original_transaction">Asyl amal</string>
+    <string name="transaction_delete_with_children">Asyl amal we onuň ähli goşmaça amallary pozular.</string>
+    <string name="current_balance">Häzirki balans</string>
+    <string name="initial_entry">Başlangyç amal</string>
+    <string name="initial_entry_type">Başlangyç amalyň görnüşi</string>
+    <string name="add_money">Goşmak (+)</string>
+    <string name="subtract_money">Aýyrmak (−)</string>
+    <string name="amount_to_add">Goşuljak möçber</string>
+    <string name="amount_to_subtract">Aýryljak möçber</string>
+    <string name="balance_after_saving">Saklanandan soňky balans</string>
+    <string name="period_balance">Döwür boýunça balans</string>
+    <string name="day_balance">Günüň balansy</string>
 </resources>

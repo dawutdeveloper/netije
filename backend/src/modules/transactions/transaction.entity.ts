@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
   ManyToOne,
   PrimaryColumn,
   UpdateDateColumn,
@@ -16,6 +17,10 @@ import type { TransactionChangeDto } from './dto';
 @Index(['ownerId', 'date'])
 export class Transaction {
   @PrimaryColumn() id: string;
+  @Index() @Column({ type: 'varchar', nullable: true }) parentTransactionId?: string;
+  @ManyToOne(() => Transaction, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'parentTransactionId' })
+  parentTransaction?: Transaction;
 
   @ManyToOne(() => Person, (p) => p.transactions, { onDelete: 'CASCADE' })
   person: Person;

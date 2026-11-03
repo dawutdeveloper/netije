@@ -251,17 +251,20 @@ fun TransactionDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                stringResource(R.string.transaction_detail_amount),
+                                stringResource(if (state.subTransactions.isEmpty()) R.string.transaction_detail_amount else R.string.current_balance),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            AmountText(
-                                amount = tx.amount,
-                                type = tx.type,
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                                currency = currency
-                            )
+                            if (state.subTransactions.isEmpty()) {
+                                AmountText(tx.amount, tx.type, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold, currency = currency)
+                            } else {
+                                com.example.netije.presentation.component.BalanceAmountText(
+                                    amount = com.example.netije.domain.model.TransactionGroup(tx, state.subTransactions).balance,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    currency = currency
+                                )
+                            }
                         }
                         // Person
                         val person = state.person
@@ -331,7 +334,7 @@ fun TransactionDetailScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                stringResource(R.string.transaction_detail_type),
+                                stringResource(if (state.subTransactions.isEmpty()) R.string.transaction_detail_type else R.string.initial_entry_type),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -362,6 +365,11 @@ fun TransactionDetailScreen(
                         }
                     }
                 }
+
+                com.example.netije.presentation.component.SubTransactionList(
+                    state.subTransactions, tx,
+                    onClick = { nav.navigate(Routes.transactionDetail(it.id)) }
+                )
 
                 // ===== Date / Time / Currency info card
                 Card(
@@ -545,7 +553,7 @@ fun TransactionDetailScreen(
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             title = { Text(stringResource(R.string.transaction_delete_title)) },
-            text = { Text(stringResource(R.string.transaction_delete_message)) },
+            text = { Text(stringResource(if (state.subTransactions.isEmpty()) R.string.transaction_delete_message else R.string.transaction_delete_with_children)) },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteDialog = false

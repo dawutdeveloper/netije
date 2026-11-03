@@ -108,8 +108,24 @@ data class Transaction(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val changes: List<TransactionChange> = emptyList(),
-    val status: TransactionStatus = TransactionStatus.ACTIVE
+    val status: TransactionStatus = TransactionStatus.ACTIVE,
+    val parentTransactionId: String? = null
 )
+
+data class TransactionGroup(val transaction: Transaction, val children: List<Transaction>) {
+    val balance: Double get() = (listOf(transaction) + children).sumOf {
+        if (it.type == TransactionType.RECEIVED) it.amount else -it.amount
+    }
+}
+
+/** Keep each payment beneath its original; filtered-out parents never hide payments. */
+fun List<Transaction>.groupTransactions(): List<TransactionGroup> {
+    val ids = map { it.id }.toSet()
+    val children = filter { it.parentTransactionId in ids }.groupBy { it.parentTransactionId }
+    return filter { it.parentTransactionId !in ids }.map {
+        TransactionGroup(it, children[it.id].orEmpty().sortedWith(compareBy<Transaction> { t -> t.date }.thenBy { t -> t.time }))
+    }
+}
 
 data class PersonWithTransactions(
     val person: Person,

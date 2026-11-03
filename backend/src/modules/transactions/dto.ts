@@ -23,6 +23,7 @@ export class TransactionChangeDto {
 export class TransactionDto {
   @IsOptional() @IsEnum(['ACTIVE', 'ARCHIVED', 'SETTLED']) status?: 'ACTIVE' | 'ARCHIVED' | 'SETTLED';
   @IsOptional() @IsString() id?: string;
+  @IsOptional() @IsString() parentTransactionId?: string;
   @IsString() personId: string;
   @IsEnum(['RECEIVED', 'ISSUED']) type: 'RECEIVED' | 'ISSUED';
   @IsNumber() @Min(0) amount: number;

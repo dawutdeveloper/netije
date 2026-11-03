@@ -69,8 +69,21 @@ class ObserveTransactionsByDayUseCase @Inject constructor(private val repo: Tran
 
 class SaveTransactionUseCase @Inject constructor(private val repo: TransactionRepository) {
     suspend operator fun invoke(transaction: Transaction): String {
+        require(transaction.amount.isFinite() && transaction.amount > 0)
         val id = transaction.id.ifEmpty { UUID.randomUUID().toString() }
         val existing = if (transaction.id.isNotEmpty()) repo.getTransaction(id) else null
+        if (existing != null && existing.personId != transaction.personId) {
+            require(repo.observeTransactions().firstOrNull().orEmpty().none { it.parentTransactionId == id }) {
+                "An original transaction with linked payments cannot change person"
+            }
+        }
+        val parentId = existing?.parentTransactionId ?: transaction.parentTransactionId
+        val parent = parentId?.let {
+            require(it != id)
+            requireNotNull(repo.getTransaction(it)) { "Original transaction no longer exists" }.also { original ->
+                require(original.parentTransactionId == null && original.personId == transaction.personId)
+            }
+        }
         val now = System.currentTimeMillis()
         val changes = existing?.changes.orEmpty().toMutableList()
         if (existing != null && (existing.amount != transaction.amount || existing.type != transaction.type)) {
@@ -86,7 +99,8 @@ class SaveTransactionUseCase @Inject constructor(private val repo: TransactionRe
         return repo.upsertTransaction(transaction.copy(
             id = id,
             currency = "TMT",
-            status = existing?.status ?: transaction.status,
+            parentTransactionId = parentId,
+            status = existing?.status ?: parent?.status ?: transaction.status,
             createdAt = existing?.createdAt ?: transaction.createdAt,
             updatedAt = now,
             changes = changes

@@ -274,6 +274,7 @@ class NewTransactionViewModel @Inject constructor(
     private val getTransaction: com.example.netije.domain.usecase.GetTransactionUseCase,
     private val getPerson: com.example.netije.domain.usecase.GetPersonUseCase,
     observePersons: ObservePersonsWithTransactionsUseCase,
+    observeTransactions: ObserveTransactionsUseCase,
     savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
     companion object {
@@ -282,6 +283,8 @@ class NewTransactionViewModel @Inject constructor(
     val editingTransactionId: String? =
         savedStateHandle.get<String>("transactionId")?.ifBlank { null }
     private val draftId = savedStateHandle.get<String>("draftTransactionId") ?: java.util.UUID.randomUUID().toString().also { savedStateHandle["draftTransactionId"] = it }
+    val addingSubTransaction = MutableStateFlow(false)
+    private var original: Transaction? = null
     val type = MutableStateFlow(TransactionType.RECEIVED)
     val date = MutableStateFlow(System.currentTimeMillis())
     val time = MutableStateFlow(System.currentTimeMillis())
@@ -318,14 +321,8 @@ class NewTransactionViewModel @Inject constructor(
             if (eid != null) {
                 val existing = getTransaction(eid)
                 if (existing != null) {
-                    type.value = existing.type
-                    date.value = existing.date
-                    time.value = existing.time
-                    purpose.value = existing.purpose.orEmpty()
-                    amount.value = if (existing.amount == 0.0) "" else
-                        java.text.DecimalFormat("#.########").format(existing.amount)
-                    note.value = existing.note.orEmpty()
-                    persistedAttachments.value = existing.attachments
+                    original = existing
+                    setAddingSubTransaction(existing.parentTransactionId == null)
                     if (personId.value.isNullOrBlank()) {
                         val p = getPerson(existing.personId)
                         personId.value = existing.personId
@@ -337,6 +334,17 @@ class NewTransactionViewModel @Inject constructor(
         }
     }
 
+    val canAddSubTransaction: Boolean get() = original != null && original?.parentTransactionId == null
+    val originalTransaction: Transaction? get() = original
+    val currentBalance: StateFlow<Double?> = observeTransactions().map { transactions ->
+        val transaction = transactions.firstOrNull { it.id == editingTransactionId }
+        transaction?.let { original ->
+            com.example.netije.domain.model.TransactionGroup(
+                original, transactions.filter { it.parentTransactionId == original.id }
+            ).balance
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     val isEditing: Boolean get() = editingTransactionId != null
 
     fun preselectPerson(id: String?, name: String?) {
@@ -344,7 +352,27 @@ class NewTransactionViewModel @Inject constructor(
     }
     fun presetDate(d: Long) { date.value = d }
 
-    fun setAmount(newVal: String) { amount.value = newVal }
+    fun setAddingSubTransaction(enabled: Boolean) {
+        val transaction = original ?: return
+        addingSubTransaction.value = enabled && transaction.parentTransactionId == null
+        val adding = addingSubTransaction.value
+        type.value = if (adding) TransactionType.RECEIVED else transaction.type
+        date.value = if (adding) System.currentTimeMillis() else transaction.date
+        time.value = if (adding) System.currentTimeMillis() else transaction.time
+        amount.value = if (adding) "" else java.text.DecimalFormat("#.########").format(transaction.amount)
+        purpose.value = if (adding) "" else transaction.purpose.orEmpty()
+        note.value = if (adding) "" else transaction.note.orEmpty()
+        persistedAttachments.value = if (adding) emptyList() else transaction.attachments
+    }
+
+    fun setAmount(newVal: String) {
+        val text = newVal.trimStart()
+        when {
+            text.startsWith("-") -> { type.value = TransactionType.ISSUED; amount.value = text.drop(1) }
+            text.startsWith("+") -> { type.value = TransactionType.RECEIVED; amount.value = text.drop(1) }
+            else -> amount.value = newVal
+        }
+    }
 
     fun addAttachment(path: String) {
         persistedAttachments.value = persistedAttachments.value + path
@@ -365,8 +393,9 @@ class NewTransactionViewModel @Inject constructor(
         saving = true
         try { return save(
             com.example.netije.domain.model.Transaction(
-                id = editingTransactionId ?: draftId,
-                personId = pid,
+                id = if (addingSubTransaction.value) draftId else editingTransactionId ?: draftId,
+                parentTransactionId = if (addingSubTransaction.value) editingTransactionId else original?.parentTransactionId,
+                personId = if (addingSubTransaction.value) original!!.personId else pid,
                 type = type.value,
                 amount = amt,
                 currency = "TMT",
@@ -472,6 +501,7 @@ data class PersonDetailState(
 // ------- TransactionDetail Screen --------------------------------------------------------------
 
 data class TransactionDetailState(
+    val subTransactions: List<Transaction> = emptyList(),
     val transaction: Transaction? = null,
     val person: Person? = null,
     val loaded: Boolean = false,
@@ -500,6 +530,8 @@ class TransactionDetailViewModel @Inject constructor(
                 } else {
                     TransactionDetailState(
                         transaction = tx,
+                        subTransactions = transactions.filter { it.parentTransactionId == tx.id }
+                            .sortedWith(compareBy<Transaction> { it.date }.thenBy { it.time }),
                         person = getPerson(tx.personId),
                         loaded = true
                     )
@@ -519,10 +551,20 @@ class TransactionDetailViewModel @Inject constructor(
         val person = state.value.person
         val baseName = "transaction_${tx.id.take(8)}"
         val file = LocalReportGenerator.createOutputFile(ctx, baseName, format)
-        val success: Boolean = when (format) {
+        val entries = listOf(tx) + state.value.subTransactions
+        val received = entries.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
+        val issued = entries.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
+        val people = person?.let { mapOf(it.id to it) }.orEmpty()
+        val from = entries.minOf { it.date }
+        val to = entries.maxOf { it.date }
+        val success: Boolean = if (entries.size == 1) when (format) {
             ReportFormat.CSV -> LocalReportGenerator.writeTransactionCsv(file, tx, person)
             ReportFormat.XLSX -> LocalReportGenerator.writeTransactionXlsx(file, tx, person)
             ReportFormat.PDF -> LocalReportGenerator.writeTransactionPdf(file, tx, person, ctx)
+        } else when (format) {
+            ReportFormat.CSV -> LocalReportGenerator.writeTransactionsCsv(file, entries, people, "TMT", received, issued, from, to)
+            ReportFormat.XLSX -> LocalReportGenerator.writeTransactionsXlsx(file, entries, people, "TMT", received, issued, from, to)
+            ReportFormat.PDF -> LocalReportGenerator.writeTransactionsPdf(file, entries, people, "TMT", received, issued, from, to, ctx)
         }
         return@withContext if (success && file.exists() && file.length() > 0L) {
             file to format

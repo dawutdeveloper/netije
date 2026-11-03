@@ -104,6 +104,8 @@ fun NewTransactionScreen(
     val locale = LocalConfiguration.current.locales[0] ?: Locale.getDefault()
     val scope = rememberCoroutineScope()
     val type by vm.type.collectAsState()
+    val addingSubTransaction by vm.addingSubTransaction.collectAsState()
+    val currentBalance by vm.currentBalance.collectAsState()
     val date by vm.date.collectAsState()
     val time by vm.time.collectAsState()
     val pid by vm.personId.collectAsState()
@@ -198,7 +200,7 @@ fun NewTransactionScreen(
             TopAppBar(
                 title = {
                     Text(
-                        stringResource(if (vm.isEditing) R.string.edit_transaction_title else R.string.new_tx_title),
+                        stringResource(if (addingSubTransaction) R.string.add_sub_transaction else if (vm.isEditing) R.string.edit_transaction_title else R.string.new_tx_title),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -232,10 +234,50 @@ fun NewTransactionScreen(
                     .verticalScroll(rememberScrollState()),
             ) {
                 Spacer(Modifier.height(4.dp))
-                SegmentedTypeControl(
-                    selected = type,
-                    onSelect = { vm.type.value = it }
-                )
+                if (ready && vm.canAddSubTransaction) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = addingSubTransaction,
+                            onClick = { if (!addingSubTransaction) vm.setAddingSubTransaction(true) },
+                            label = { Text(stringResource(R.string.add_sub_transaction)) }
+                        )
+                        FilterChip(
+                            selected = !addingSubTransaction,
+                            onClick = { if (addingSubTransaction) vm.setAddingSubTransaction(false) },
+                            label = { Text(stringResource(R.string.edit_original_transaction)) }
+                        )
+                    }
+                    if (addingSubTransaction) {
+                        currentBalance?.let { balance ->
+                            Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+                                Text(stringResource(R.string.current_balance), style = MaterialTheme.typography.labelLarge)
+                                com.example.netije.presentation.component.BalanceAmountText(balance, currency = "TMT", style = MaterialTheme.typography.titleLarge)
+                            }
+                        }
+                        Text(
+                            stringResource(R.string.sub_transaction_hint),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
+                }
+                if (addingSubTransaction) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = type == TransactionType.RECEIVED,
+                            onClick = { vm.type.value = TransactionType.RECEIVED },
+                            label = { Text(stringResource(R.string.add_money)) }
+                        )
+                        FilterChip(
+                            selected = type == TransactionType.ISSUED,
+                            onClick = { vm.type.value = TransactionType.ISSUED },
+                            label = { Text(stringResource(R.string.subtract_money)) }
+                        )
+                    }
+                } else {
+                    SegmentedTypeControl(selected = type, onSelect = { vm.type.value = it })
+                }
                 Spacer(Modifier.height(20.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -359,7 +401,7 @@ fun NewTransactionScreen(
                                 )
                             },
                             placeholderIfEmpty = !isSelected,
-                            onClick = { nav.navigate(Routes.SELECT_CONTACT) }
+                            onClick = { if (!addingSubTransaction) nav.navigate(Routes.SELECT_CONTACT) }
                         )
                     }
                 }
@@ -419,7 +461,7 @@ fun NewTransactionScreen(
                 //  Сумма: only number keyboard
                 // ══════════════════════════════════════════════════════════════
                 Spacer(Modifier.height(20.dp))
-                LabeledRow(stringResource(R.string.tx_amount)) {
+                LabeledRow(stringResource(if (!addingSubTransaction) R.string.tx_amount else if (type == TransactionType.RECEIVED) R.string.amount_to_add else R.string.amount_to_subtract)) {
                     NetijeTextField(
                         value = amount,
                         placeholder = "0.00",
@@ -456,6 +498,19 @@ fun NewTransactionScreen(
                     )
                 }
                 Spacer(Modifier.height(20.dp))
+                if (addingSubTransaction) {
+                    val enteredAmount = com.example.netije.domain.model.parseMoney(amount)
+                    val balance = currentBalance
+                    if (enteredAmount != null && balance != null) {
+                        Column(Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surfaceVariant).padding(12.dp)) {
+                            Text(stringResource(R.string.balance_after_saving), style = MaterialTheme.typography.bodyMedium)
+                            com.example.netije.presentation.component.BalanceAmountText(
+                                balance + if (type == TransactionType.RECEIVED) enteredAmount else -enteredAmount,
+                                currency = "TMT", style = MaterialTheme.typography.titleLarge
+                            )
+                        }
+                    }
+                }
                 LabeledRow(stringResource(R.string.tx_note)) {
                     NetijeTextField(
                         value = note,

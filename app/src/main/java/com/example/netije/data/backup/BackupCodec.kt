@@ -54,6 +54,13 @@ object BackupCodec {
             }
         }
         require(transactions.map { it.id }.distinct().size == transactions.size)
+        val transactionsById = transactions.associateBy { it.id }
+        transactions.forEach { child ->
+            child.parentTransactionId?.let { parentId ->
+                val parent = requireNotNull(transactionsById[parentId]) { "Missing original transaction" }
+                require(parent.id != child.id && parent.parentTransactionId == null && parent.personId == child.personId)
+            }
+        }
         val assets = root.get("assets")?.takeUnless { it.isJsonNull }?.asJsonObject?.entrySet()?.associate { (key, value) ->
             require(key.startsWith("backup:"))
             key to gson.fromJson(value, BackupAsset::class.java).also {

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Between, Repository } from 'typeorm';
 import { Transaction } from './transaction.entity';
@@ -13,6 +13,15 @@ export class TransactionsService {
     @InjectRepository(Transaction) private readonly repo: Repository<Transaction>,
     private readonly persons: PersonsService,
   ) {}
+
+  private async validateParent(owner: User, id: string, personId: string, parentId?: string) {
+    if (!parentId) return;
+    if (id === parentId) throw new BadRequestException('A transaction cannot be its own parent');
+    const parent = await this.one(owner, parentId);
+    if (parent.parentTransactionId || parent.personId !== personId) {
+      throw new BadRequestException('Invalid original transaction');
+    }
+  }
 
   private mergeChanges(current: Transaction, dto: TransactionDto) {
     const changes = new Map((current.changes ?? []).map((change) => [change.id, change]));
@@ -46,8 +55,10 @@ export class TransactionsService {
     const id = dto.id && dto.id.length ? dto.id : uuid();
     const exists = await this.repo.findOne({ where: { id } });
     if (exists) return this.update(owner, id, dto);
+    await this.validateParent(owner, id, dto.personId, dto.parentTransactionId);
     const t = this.repo.create({
       id,
+      parentTransactionId: dto.parentTransactionId,
       ownerId: owner.id,
       personId: dto.personId,
       type: dto.type,
@@ -66,7 +77,12 @@ export class TransactionsService {
 
   async update(owner: User, id: string, dto: TransactionDto) {
     const t = await this.one(owner, id);
+    await this.validateParent(owner, id, dto.personId ?? t.personId, dto.parentTransactionId ?? t.parentTransactionId);
+    if (dto.personId && dto.personId !== t.personId && await this.repo.count({ where: { parentTransactionId: id, ownerId: owner.id } })) {
+      throw new BadRequestException('An original transaction with linked payments cannot change person');
+    }
     Object.assign(t, {
+      parentTransactionId: dto.parentTransactionId ?? t.parentTransactionId,
       personId: dto.personId ?? t.personId,
       type: dto.type ?? t.type,
       status: dto.status ?? t.status,
@@ -90,7 +106,8 @@ export class TransactionsService {
 
   async upsertMany(owner: User, dtos: TransactionDto[]) {
     const results: Transaction[] = [];
-    for (const d of dtos) {
+    // Newly created parents must be saved before their offline sub-transactions.
+    for (const d of [...dtos].sort((a, b) => Number(!!a.parentTransactionId) - Number(!!b.parentTransactionId))) {
       if (!d.personId || !d.type || !(d.amount > 0)) continue;
       const personOk = await this.repo.manager
         .query('SELECT id FROM persons WHERE id = $1 AND "ownerId" = $2 LIMIT 1', [
@@ -110,8 +127,16 @@ export class TransactionsService {
       const id = d.id && d.id.length ? d.id : uuid();
       let existing = await this.repo.findOne({ where: { id } });
       if (existing && existing.ownerId !== owner.id) continue;
+      try {
+        await this.validateParent(owner, id, d.personId, d.parentTransactionId ?? existing?.parentTransactionId);
+      } catch (e) {
+        if (e instanceof BadRequestException || e instanceof NotFoundException) continue;
+        throw e;
+      }
       if (existing) {
+        if (d.personId !== existing.personId && await this.repo.count({ where: { parentTransactionId: id, ownerId: owner.id } })) continue;
         Object.assign(existing, {
+          parentTransactionId: d.parentTransactionId ?? existing.parentTransactionId,
           personId: d.personId ?? existing.personId,
           type: d.type ?? existing.type,
           status: d.status ?? existing.status,
@@ -130,6 +155,7 @@ export class TransactionsService {
           await this.repo.save(
             this.repo.create({
               id,
+              parentTransactionId: d.parentTransactionId,
               ownerId: owner.id,
               personId: d.personId,
               type: d.type,

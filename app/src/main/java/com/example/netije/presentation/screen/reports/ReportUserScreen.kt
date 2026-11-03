@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.netije.R
+import com.example.netije.domain.model.groupTransactions
 import com.example.netije.presentation.component.ReportDateRange
 import com.example.netije.domain.model.TransactionType
 import com.example.netije.presentation.component.AmountText
@@ -308,7 +309,8 @@ fun ReportUserScreen(
                     }
                 }
             } else {
-                items(state.transactions) { tx ->
+                items(state.transactions.groupTransactions(), key = { it.transaction.id }) { group ->
+                    val tx = group.transaction
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
@@ -345,7 +347,7 @@ fun ReportUserScreen(
                                 )
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                            TransactionRow(t = tx, currency = currency, purpose = tx.purpose)
+                            TransactionRow(t = tx, currency = currency, purpose = tx.purpose, subTransactions = group.children, onSubTransactionClick = { nav.navigate(com.example.netije.presentation.navigation.Routes.transactionDetail(it.id)) }, balanceLabelRes = R.string.period_balance)
                         }
                     }
                 }

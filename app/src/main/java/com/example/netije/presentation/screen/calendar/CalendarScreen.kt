@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.netije.R
+import com.example.netije.domain.model.groupTransactions
 import com.example.netije.domain.model.Person
 import com.example.netije.domain.model.PersonStatus
 import com.example.netije.domain.model.TransactionType
@@ -536,15 +537,20 @@ private fun DayDetailsPanel(
                                     Column {
                                         Spacer(Modifier.height(6.dp))
                                         androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                                        txs.forEachIndexed { idx, t ->
+                                        val transactionGroups = txs.groupTransactions()
+                                        transactionGroups.forEachIndexed { idx, group ->
+                                            val t = group.transaction
                                             TransactionRow(
                                                 t = t,
                                                 currency = currency,
                                                 purpose = t.purpose,
                                                 onEditClick = { onEditTransaction(t) },
-                                                onRowClick = { onTransactionClick(t) }
+                                                onRowClick = { onTransactionClick(t) },
+                                                subTransactions = group.children,
+                                                onSubTransactionClick = onTransactionClick,
+                                                balanceLabelRes = R.string.day_balance
                                             )
-                                            if (idx < txs.lastIndex) {
+                                            if (idx < transactionGroups.lastIndex) {
                                                 androidx.compose.material3.HorizontalDivider(color = MaterialTheme.colorScheme.outline)
                                             }
                                         }

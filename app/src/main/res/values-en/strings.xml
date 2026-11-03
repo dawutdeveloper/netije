@@ -228,4 +228,21 @@
     <string name="person_status">Status</string>
     <string name="report_date_from">From %1$s</string>
     <string name="report_date_to">To %1$s</string>
+    <string name="add_sub_transaction">Add entry</string>
+    <string name="edit_original_transaction">Correct original</string>
+    <string name="sub_transaction_hint">Choose add or subtract, enter the amount, and add a note. The balance updates after saving.</string>
+    <string name="sub_transactions">Transaction history</string>
+    <string name="sub_transaction_files">Attachments: %1$d</string>
+    <string name="original_transaction">Original transaction</string>
+    <string name="transaction_delete_with_children">This deletes the original transaction and all its sub-transactions.</string>
+    <string name="current_balance">Current balance</string>
+    <string name="initial_entry">Initial entry</string>
+    <string name="initial_entry_type">Initial entry type</string>
+    <string name="add_money">Add (+)</string>
+    <string name="subtract_money">Subtract (−)</string>
+    <string name="amount_to_add">Amount to add</string>
+    <string name="amount_to_subtract">Amount to subtract</string>
+    <string name="balance_after_saving">Balance after saving</string>
+    <string name="period_balance">Period balance</string>
+    <string name="day_balance">Day balance</string>
 </resources>

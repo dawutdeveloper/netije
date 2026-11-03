@@ -42,6 +42,10 @@ sealed interface ReportExportResult {
     data class Failure(val error: Throwable) : ReportExportResult
 }
 
+private fun Transaction.reportNote(): String = listOfNotNull(
+    parentTransactionId?.let { "Original transaction: $it" }, note
+).joinToString("\n")
+
 object LocalReportGenerator {
 
     // ─────────────────────────────────────────────────────────────────────
@@ -75,7 +79,7 @@ object LocalReportGenerator {
                     dfD.format(Date(tx.date)),
                     dfT.format(Date(tx.time)),
                     tx.purpose.orEmpty(),
-                    tx.note.orEmpty(),
+                    tx.reportNote(),
                     tx.attachments.size.toString(),
                     tx.attachments.joinToString("; ")
                 )
@@ -111,7 +115,7 @@ object LocalReportGenerator {
                 XlsxWriter.Cell.text(dfD.format(Date(tx.date))),
                 XlsxWriter.Cell.text(dfT.format(Date(tx.time))),
                 XlsxWriter.Cell.text(tx.purpose.orEmpty()),
-                XlsxWriter.Cell.text(tx.note.orEmpty()),
+                XlsxWriter.Cell.text(tx.reportNote()),
                 XlsxWriter.Cell.text(tx.attachments.joinToString("; "))
             )
         )
@@ -170,7 +174,7 @@ object LocalReportGenerator {
             "Amount" to "${currencyFmt.format(tx.amount)} ${tx.currency}",
             "Date" to dfDT.format(Date(tx.date)),
             "Purpose" to tx.purpose.orEmpty().ifBlank { "—" },
-            "Note" to tx.note.orEmpty().ifBlank { "—" },
+            "Note" to tx.reportNote().ifBlank { "—" },
             "Attachments" to tx.attachments.size.toString()
         )
         val col1 = margin
@@ -238,7 +242,7 @@ object LocalReportGenerator {
                         tx.id, tx.type.name,
                         currencyFmt.format(tx.amount), tx.currency,
                         dfD.format(Date(tx.date)), dfT.format(Date(tx.time)),
-                        tx.purpose.orEmpty(), tx.note.orEmpty()
+                        tx.purpose.orEmpty(), tx.reportNote()
                     )
                     w.write(row.joinToString(",") { it.csvEscape() })
                     w.newLine()
@@ -286,7 +290,7 @@ object LocalReportGenerator {
                     XlsxWriter.Cell.text(dfD.format(Date(tx.date))),
                     XlsxWriter.Cell.text(dfT.format(Date(tx.time))),
                     XlsxWriter.Cell.text(tx.purpose.orEmpty()),
-                    XlsxWriter.Cell.text(tx.note.orEmpty())
+                    XlsxWriter.Cell.text(tx.reportNote())
                 )
             )
         }
@@ -658,7 +662,7 @@ object LocalReportGenerator {
                         dfD.format(Date(tx.date)),
                         dfT.format(Date(tx.time)),
                         tx.purpose.orEmpty(),
-                        tx.note.orEmpty()
+                        tx.reportNote()
                     )
                     w.write(row.joinToString(",") { it.csvEscape() }); w.newLine()
                 }
@@ -706,7 +710,7 @@ object LocalReportGenerator {
                     XlsxWriter.Cell.text(dfD.format(Date(tx.date))),
                     XlsxWriter.Cell.text(dfT.format(Date(tx.time))),
                     XlsxWriter.Cell.text(tx.purpose.orEmpty()),
-                    XlsxWriter.Cell.text(tx.note.orEmpty())
+                    XlsxWriter.Cell.text(tx.reportNote())
                 )
             )
         }

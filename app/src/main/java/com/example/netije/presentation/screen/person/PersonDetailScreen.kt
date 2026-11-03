@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.netije.R
+import com.example.netije.domain.model.groupTransactions
 import com.example.netije.domain.model.PersonStatus
 import com.example.netije.domain.model.TransactionType
 import com.example.netije.presentation.component.AmountText
@@ -294,7 +295,8 @@ fun PersonDetailScreen(
                     }
                 }
             } else {
-                items(transactions, key = { it.id }) { tx ->
+                items(transactions.groupTransactions(), key = { it.transaction.id }) { group ->
+                    val tx = group.transaction
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
@@ -313,18 +315,16 @@ fun PersonDetailScreen(
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                                 Spacer(Modifier.weight(1f))
-                                AmountText(
-                                    tx.amount, tx.type,
-                                    currency = currency,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
+
                             }
                             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             TransactionRow(
                                 t = tx,
                                 currency = currency,
                                 purpose = tx.purpose,
-                                onRowClick = { nav.navigate(com.example.netije.presentation.navigation.Routes.transactionDetail(tx.id)) }
+                                onRowClick = { nav.navigate(com.example.netije.presentation.navigation.Routes.transactionDetail(tx.id)) },
+                                subTransactions = group.children,
+                                onSubTransactionClick = { nav.navigate(Routes.transactionDetail(it.id)) }
                             )
                         }
                     }

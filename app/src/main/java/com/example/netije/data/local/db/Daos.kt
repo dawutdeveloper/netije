@@ -75,10 +75,10 @@ interface PersonDao {
 
 @Dao
 interface TransactionDao {
-    @Query("UPDATE transactions SET status = :status, statusPending = 1, updatedAt = :now WHERE id = :id")
+    @Query("UPDATE transactions SET status = :status, statusPending = 1, updatedAt = :now WHERE id = :id OR parentTransactionId = :id")
     suspend fun setStatus(id: String, status: String, now: Long = System.currentTimeMillis())
 
-    @Query("SELECT * FROM transactions WHERE statusPending = 1")
+    @Query("SELECT * FROM transactions WHERE statusPending = 1 ORDER BY CASE WHEN parentTransactionId IS NULL THEN 0 ELSE 1 END")
     suspend fun pendingStatuses(): List<TransactionEntity>
 
     @Query("UPDATE transactions SET statusPending = 0 WHERE id = :id AND status = :status AND updatedAt = :updatedAt")
@@ -91,7 +91,7 @@ interface TransactionDao {
             val history = (local?.toDomain()?.changes.orEmpty() + remote.toDomain().changes)
                 .distinctBy { it.id }.sortedBy { it.changedAt }
             val selected = if (local?.statusPending == true) local else remote
-            upsert(selected.copy(changes = com.google.gson.Gson().toJson(history)))
+            upsert(selected.copy(changes = com.google.gson.Gson().toJson(history), parentTransactionId = selected.parentTransactionId ?: local?.parentTransactionId))
         }
     }
 
@@ -119,7 +119,7 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE personId = :personId AND date BETWEEN :from AND :to ORDER BY date DESC, time DESC")
     fun observeByPersonAndDateRange(personId: String, from: Long, to: Long): Flow<List<TransactionEntity>>
 
-    @Query("DELETE FROM transactions WHERE id = :id")
+    @Query("DELETE FROM transactions WHERE id = :id OR parentTransactionId = :id")
     suspend fun deleteById(id: String)
 
     @Query("DELETE FROM transactions WHERE personId = :personId")
