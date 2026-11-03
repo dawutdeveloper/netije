@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.SaveAlt
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -60,6 +63,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -438,25 +442,42 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                 }
                 item {
                     SectionHeader(stringResource(R.string.section_backup))
-                    Text(stringResource(R.string.backup_transfer_hint), style = MaterialTheme.typography.bodyMedium)
-                    TextButton(enabled = !backupBusy, onClick = { exportLauncher.launch("netije_backup_${System.currentTimeMillis()}.json") }) {
-                        Text(stringResource(R.string.backup_export_file))
-                    }
-                    TextButton(enabled = !backupBusy, onClick = { importLauncher.launch(arrayOf("application/json", "text/*", "application/octet-stream")) }) {
-                        Text(stringResource(R.string.backup_import))
-                    }
-                    TextButton(enabled = !backupBusy, onClick = {
-                        scope.launch {
-                            localBackups = withContext(Dispatchers.IO) {
-                                val directories = listOf(
-                                    File(ctx.getExternalFilesDir(null) ?: ctx.filesDir, "Netije/backups"),
-                                    File(ctx.filesDir, "backups")
-                                )
-                                directories.flatMap { it.listFiles()?.toList().orEmpty() }
-                                    .filter { it.isFile && it.extension == "json" }.sortedByDescending { it.lastModified() }
+                    Spacer(Modifier.height(10.dp))
+                    BackupActionCard(
+                        title = stringResource(R.string.backup_import),
+                        description = stringResource(R.string.backup_import_card_hint),
+                        icon = Icons.Default.Restore,
+                        enabled = !backupBusy,
+                        onClick = { importLauncher.launch(arrayOf("application/json", "text/*", "application/octet-stream")) }
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    BackupActionCard(
+                        title = stringResource(R.string.backup_export_file),
+                        description = stringResource(R.string.backup_export_card_hint),
+                        icon = Icons.Default.SaveAlt,
+                        enabled = !backupBusy,
+                        onClick = { exportLauncher.launch("netije_backup_${System.currentTimeMillis()}.json") }
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    BackupActionCard(
+                        title = stringResource(R.string.backup_local_files),
+                        description = stringResource(R.string.backup_local_card_hint),
+                        icon = Icons.Default.FolderOpen,
+                        enabled = !backupBusy,
+                        onClick = {
+                            scope.launch {
+                                localBackups = withContext(Dispatchers.IO) {
+                                    val directories = listOf(
+                                        File(ctx.getExternalFilesDir(null) ?: ctx.filesDir, "Netije/backups"),
+                                        File(ctx.filesDir, "backups")
+                                    )
+                                    directories.flatMap { it.listFiles()?.toList().orEmpty() }
+                                        .filter { it.isFile && it.extension == "json" }.sortedByDescending { it.lastModified() }
+                                }
                             }
                         }
-                    }) { Text(stringResource(R.string.backup_local_files)) }
+                    )
+                    Spacer(Modifier.height(12.dp))
                     if (backupBusy) androidx.compose.material3.LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                     Spacer(Modifier.height(8.dp))
                     Card(
@@ -549,6 +570,51 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                     showBackupDialog = false
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun BackupActionCard(
+    title: String,
+    description: String,
+    icon: ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val contentAlpha = if (enabled) 1f else 0.5f
+    Card(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                modifier = Modifier.size(48.dp).clip(RoundedCornerShape(14.dp))
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = contentAlpha),
+                    modifier = Modifier.size(26.dp))
+            }
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha))
+                Text(description, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha))
+            }
+            Icon(Icons.Default.KeyboardArrowRight, contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = contentAlpha),
+                modifier = Modifier.size(20.dp))
         }
     }
 }

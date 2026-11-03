@@ -28,4 +28,7 @@
     <string name="backup_local_files">Копии на этом телефоне</string>
     <string name="backup_no_files">На этом телефоне ещё нет сохранённых копий.</string>
     <string name="backup_missing_files">Недоступных файлов: %1$d. Их не удалось включить в копию. Записи сохранены. Сохраните оригиналы файлов, если они у вас остались.</string>
+    <string name="backup_import_card_hint">Выберите сохранённую копию для восстановления записей.</string>
+    <string name="backup_export_card_hint">Сохраните записи и вложения в файл для хранения или переноса.</string>
+    <string name="backup_local_card_hint">Просмотрите и восстановите копии, сохранённые на этом телефоне.</string>
 </resources>

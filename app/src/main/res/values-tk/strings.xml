@@ -88,7 +88,7 @@
     <string name="settings_signin">Google arkaly girmek</string>
     <string name="settings_signout">Çykmak</string>
     <string name="settings_language">Dil</string>
-    <string name="settings_darkmode">Garaňky režim</string>
+    <string name="settings_darkmode">Gije</string>
     <string name="settings_backup">Ätiýaçlyk nusgasy</string>
     <string name="settings_backup_export">Maglumatlary eksport etmek (JSON)</string>
     <string name="settings_backup_import">Faýldan dikeltmek</string>

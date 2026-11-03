@@ -28,4 +28,7 @@
     <string name="backup_local_files">Bu telefonda saklanan nusgalar</string>
     <string name="backup_no_files">Bu telefonda heniz nusga saklanmady.</string>
     <string name="backup_missing_files">%1$d faýl elýeterli däldi we nusga goşulmady. Ýazgylar saklandy. Asyl faýllar bar bolsa, olary saklaň.</string>
+    <string name="backup_import_card_hint">Ýazgylary dikeltmek üçin saklanan nusgany saýlaň.</string>
+    <string name="backup_export_card_hint">Ýazgylary we goşundylary saklamak ýa-da geçirmek üçin faýla ýazyň.</string>
+    <string name="backup_local_card_hint">Bu telefonda saklanan nusgalary görüň we dikeldiň.</string>
 </resources>

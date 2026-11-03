@@ -28,4 +28,7 @@
     <string name="backup_local_files">Backups saved on this phone</string>
     <string name="backup_no_files">No backups have been saved on this phone yet.</string>
     <string name="backup_missing_files">%1$d referenced files were unavailable and could not be included. The records were saved. Keep the originals if you still have them.</string>
+    <string name="backup_import_card_hint">Choose a saved backup to restore your records.</string>
+    <string name="backup_export_card_hint">Save your records and attachments to a file you can keep or transfer.</string>
+    <string name="backup_local_card_hint">Browse and restore backups stored on this phone.</string>
 </resources>
