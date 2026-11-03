@@ -62,9 +62,6 @@ import com.example.netije.di.PickedContactHolder
 import com.example.netije.domain.model.Person
 import com.example.netije.domain.model.TransactionStatus
 import com.example.netije.domain.model.PersonWithTransactions
-import com.example.netije.domain.model.TransactionType
-import com.example.netije.presentation.component.AmountText
-import com.example.netije.presentation.component.BalanceAmountText
 import com.example.netije.presentation.component.ExpandablePersonCard
 import com.example.netije.presentation.component.NetijeAvatar
 import com.example.netije.presentation.component.NetijeFilterChip
@@ -180,46 +177,7 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                 }
                 Spacer(Modifier.height(18.dp))
                 val currency = settingsState.settings.currencyCode
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.Start) {
-                        Text(stringResource(R.string.summary_received), color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(4.dp))
-                        AmountText(
-                            amount = state.summary.totalReceived,
-                            type = TransactionType.RECEIVED,
-                            style = MaterialTheme.typography.titleLarge,
-                            currency = currency
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(stringResource(R.string.summary_issued), color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(4.dp))
-                        AmountText(
-                            amount = state.summary.totalIssued,
-                            type = TransactionType.ISSUED,
-                            style = MaterialTheme.typography.titleLarge,
-                            currency = currency
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-                        Text(stringResource(R.string.summary_balance), color = MaterialTheme.colorScheme.onSurface,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold)
-                        Spacer(Modifier.height(4.dp))
-                        BalanceAmountText(
-                            amount = state.summary.balance,
-                            style = MaterialTheme.typography.titleLarge,
-                            currency = currency
-                        )
-                    }
-                }
+                HomeFinanceSummary(summary = state.summary, currency = currency)
                 Spacer(Modifier.height(20.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box {
