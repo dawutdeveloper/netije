@@ -99,6 +99,7 @@ class SaveTransactionUseCase @Inject constructor(private val repo: TransactionRe
         return repo.upsertTransaction(transaction.copy(
             id = id,
             currency = "TMT",
+            tags = com.example.netije.domain.model.normalizeTransactionTags(transaction.tags),
             parentTransactionId = parentId,
             status = existing?.status ?: parent?.status ?: transaction.status,
             createdAt = existing?.createdAt ?: transaction.createdAt,

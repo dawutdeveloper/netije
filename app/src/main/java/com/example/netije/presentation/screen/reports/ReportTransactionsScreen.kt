@@ -77,6 +77,9 @@ fun ReportTransactionsScreen(
     settingsVm: com.example.netije.presentation.viewmodel.SettingsViewModel = hiltViewModel()
 ) {
     val state by vm.state.collectAsState()
+    val search by vm.search.collectAsState()
+    val allDates by vm.allDates.collectAsState()
+    val typeFilter by vm.typeFilter.collectAsState()
     val persons by vm.persons.collectAsState()
     val personFilter by vm.personFilter.collectAsState()
     val statusFilter by vm.statusFilter.collectAsState()
@@ -160,6 +163,11 @@ fun ReportTransactionsScreen(
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
                     Column(Modifier.padding(16.dp)) {
+                        com.example.netije.presentation.component.NetijeSearchBar(
+                            value = search, onValueChange = vm::setSearch,
+                            placeholder = stringResource(R.string.search_transactions_tags)
+                        )
+                        Spacer(Modifier.height(10.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.contact_person_hint) + ":", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(Modifier.width(8.dp))
@@ -196,17 +204,23 @@ fun ReportTransactionsScreen(
                             }
                         }
                         Spacer(Modifier.height(10.dp))
-                        ReportDateRange(
-                            from = state.fromDate,
-                            to = state.toDate,
-                            onFromClick = { showDatePicker(true) },
-                            onToClick = { showDatePicker(false) }
+                        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            NetijeFilterChip(stringResource(R.string.search_all_dates), allDates, { vm.allDates.value = !allDates })
+                            if (allDates) {
+                                androidx.compose.material3.TextButton(onClick = { vm.allDates.value = false }) {
+                                    Text(stringResource(R.string.search_choose_dates))
+                                }
+                            }
+                        }
+                        if (!allDates) ReportDateRange(
+                            from = state.fromDate, to = state.toDate,
+                            onFromClick = { showDatePicker(true) }, onToClick = { showDatePicker(false) }
                         )
                         Spacer(Modifier.height(10.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            NetijeFilterChip(stringResource(R.string.filter_all), true, { vm.setType(null) })
-                            NetijeFilterChip(stringResource(R.string.tx_received), false, { vm.setType(TransactionType.RECEIVED) })
-                            NetijeFilterChip(stringResource(R.string.tx_issued), false, { vm.setType(TransactionType.ISSUED) })
+                            NetijeFilterChip(stringResource(R.string.filter_all), typeFilter == null, { vm.setType(null) })
+                            NetijeFilterChip(stringResource(R.string.tx_received), typeFilter == TransactionType.RECEIVED, { vm.setType(TransactionType.RECEIVED) })
+                            NetijeFilterChip(stringResource(R.string.tx_issued), typeFilter == TransactionType.ISSUED, { vm.setType(TransactionType.ISSUED) })
                         }
                         Spacer(Modifier.height(14.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -221,7 +235,7 @@ fun ReportTransactionsScreen(
             if (state.transactions.isEmpty()) {
                 item {
                     Box(Modifier.fillMaxWidth().height(140.dp), contentAlignment = Alignment.Center) {
-                        Text(stringResource(R.string.empty_transactions), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(stringResource(if (search.isBlank()) R.string.empty_transactions else R.string.search_no_transactions), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             } else {

@@ -278,6 +278,7 @@ fun TransactionRow(
                 }
             }
         }
+        TransactionTags(t.tags, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
         SubTransactionList(subTransactions, t, onSubTransactionClick)
     }
 }
@@ -291,9 +292,10 @@ fun ExpandablePersonCard(
     onTransactionClick: ((Transaction) -> Unit)? = null,
     onCardClick: (() -> Unit)? = null,
     onCardLongClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    expandForSearch: Boolean = false
 ) {
-    var expanded by remember(pwt.person.id) { mutableStateOf(false) }
+    var expanded by remember(pwt.person.id, expandForSearch) { mutableStateOf(expandForSearch) }
     Card(
         modifier = modifier
             .fillMaxWidth()

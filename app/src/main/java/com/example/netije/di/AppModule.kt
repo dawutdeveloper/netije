@@ -52,7 +52,6 @@ internal fun saveAccessToken(ctx: Context, token: String?) {
         .putString(KEY_ACCESS_TOKEN, token)
         .apply()
 }
-
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {

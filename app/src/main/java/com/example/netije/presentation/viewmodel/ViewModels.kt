@@ -11,6 +11,9 @@ import com.example.netije.domain.model.DayTransactions
 import com.example.netije.domain.model.Person
 import com.example.netije.domain.model.ReportSummaryRow
 import com.example.netije.domain.model.Transaction
+import com.example.netije.domain.model.matchingTransactionGroups
+import com.example.netije.domain.model.matchesSearch
+import com.example.netije.domain.model.parseTransactionTags
 import com.example.netije.domain.model.parseMoney
 import com.example.netije.domain.model.startOfDayMillis
 import com.example.netije.domain.model.endOfDayMillis
@@ -95,9 +98,11 @@ class HomeViewModel @Inject constructor(
         observeSummary()
     ) { q, status, sum -> Triple(q, status, sum) }
         .flatMapLatest { (q, status, sum) ->
-            observePersons(null, q.ifBlank { null })
+            observePersons(null, null)
                 .combine(flowOf(sum)) { list, s ->
-                    val filtered = list.map { pwt -> pwt.copy(transactions = pwt.transactions.filter { status == null || it.status == status }) }
+                    val filtered = list.mapNotNull { pwt ->
+                        pwt.copy(transactions = pwt.transactions.filter { status == null || it.status == status }).matchingTransactionGroups(q)
+                    }
                     HomeState(q, status, s, filtered)
                 }
         }
@@ -293,6 +298,7 @@ class NewTransactionViewModel @Inject constructor(
     val purpose = MutableStateFlow("")
     val amount = MutableStateFlow("")
     val note = MutableStateFlow("")
+    val tags = MutableStateFlow("")
     val ready = MutableStateFlow(false)
     private var saving = false
     private val persistedAttachments: MutableStateFlow<List<String>> = MutableStateFlow(
@@ -362,6 +368,7 @@ class NewTransactionViewModel @Inject constructor(
         amount.value = if (adding) "" else java.text.DecimalFormat("#.########").format(transaction.amount)
         purpose.value = if (adding) "" else transaction.purpose.orEmpty()
         note.value = if (adding) "" else transaction.note.orEmpty()
+        tags.value = if (adding) "" else transaction.tags.orEmpty().joinToString(" ")
         persistedAttachments.value = if (adding) emptyList() else transaction.attachments
     }
 
@@ -402,6 +409,7 @@ class NewTransactionViewModel @Inject constructor(
                 purpose = purpose.value.trim().ifBlank { null },
                 note = note.value.trim().ifBlank { null },
                 attachments = attachments.value,
+                tags = parseTransactionTags(tags.value),
                 date = date.value,
                 time = time.value
             )
@@ -513,6 +521,8 @@ class TransactionDetailViewModel @Inject constructor(
     observeTransactions: ObserveTransactionsUseCase,
     private val getPerson: com.example.netije.domain.usecase.GetPersonUseCase,
     private val deleteTransaction: com.example.netije.domain.usecase.DeleteTransactionUseCase,
+    private val saveTransaction: SaveTransactionUseCase,
+    private val getTransaction: GetTransactionUseCase,
     private val reportsApi: ReportsApi,
     @ApplicationContext private val ctx: Context,
     savedStateHandle: androidx.lifecycle.SavedStateHandle
@@ -538,6 +548,12 @@ class TransactionDetailViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    suspend fun saveTags(input: String): Boolean {
+        val latest = getTransaction(transactionId) ?: return false
+        saveTransaction(latest.copy(tags = parseTransactionTags(input)))
+        return true
     }
 
     suspend fun delete(): Boolean {
@@ -764,9 +780,12 @@ class ReportTransactionsViewModel @Inject constructor(
     observePersons: ObservePersonsWithTransactionsUseCase,
     observeTransactions: ObserveTransactionsUseCase,
     private val reportsApi: ReportsApi,
-    @ApplicationContext private val ctx: Context
+    @ApplicationContext private val ctx: Context,
+    savedStateHandle: androidx.lifecycle.SavedStateHandle
 ) : ViewModel() {
-    private data class Quad4<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+    private data class Filters(val personId: String?, val type: TransactionType?, val from: Long, val to: Long, val allDates: Boolean)
+    val search = MutableStateFlow(savedStateHandle.get<String>("search").orEmpty())
+    val allDates = MutableStateFlow(search.value.isNotBlank())
 
     val statusFilter = MutableStateFlow<TransactionStatus?>(null)
     val personFilter = MutableStateFlow<String?>(null)
@@ -782,21 +801,31 @@ class ReportTransactionsViewModel @Inject constructor(
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: StateFlow<ReportTransactionsState> =
-        combine(personFilter, typeFilter, fromDate, toDate) { pid, t, f, to ->
-            Quad4(pid, t, f, to)
-        }.flatMapLatest { (pid, t, f, to) ->
-            observeTransactions(pid, f, to).map { txs ->
+        combine(personFilter, typeFilter, fromDate, toDate, allDates) { pid, t, f, to, all ->
+            Filters(pid, t, f, to, all)
+        }.flatMapLatest { (pid, t, f, to, all) ->
+            observeTransactions(pid, if (all) null else f, if (all) null else to).map { txs ->
                 val filtered = if (t != null) txs.filter { it.type == t } else txs
                 val recv = filtered.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
                 val iss = filtered.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
-                ReportTransactionsState(filtered, recv, iss, f, to)
+                ReportTransactionsState(filtered, recv, iss, f, to, all)
             }
-        }.combine(statusFilter) { current, status ->
-            val transactions = current.transactions.filter { status == null || it.status == status }
+        }.combine(combine(statusFilter, search, persons) { status, query, people -> Triple(status, query, people) }) { current, (status, query, people) ->
+            val names = people.associate { it.person.id to it.person.name }
+            val transactions = current.transactions.filter {
+                (status == null || it.status == status) && it.matchesSearch(query, names[it.personId].orEmpty())
+            }
             current.copy(transactions = transactions,
                 received = transactions.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount },
-                issued = transactions.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount })
+                issued = transactions.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount },
+                fromDate = if (current.allDates) transactions.minOfOrNull { it.date } ?: current.fromDate else current.fromDate,
+                toDate = if (current.allDates) transactions.maxOfOrNull { it.date }?.let { endOfDayMillis(it) } ?: current.toDate else current.toDate)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportTransactionsState())
+
+    fun setSearch(query: String) {
+        search.value = query
+        if ('#' in query) allDates.value = true
+    }
 
     fun setPerson(id: String?) { personFilter.value = id }
     fun setType(t: TransactionType?) { typeFilter.value = t }
@@ -810,9 +839,9 @@ class ReportTransactionsViewModel @Inject constructor(
     }
 
     fun export(format: ReportFormat, currencyCode: String = "TMT") {
-        val f = fromDate.value
-        val t = toDate.value
         val current = state.value
+        val f = current.fromDate
+        val t = current.toDate
         val txs = current.transactions
         val personsById = persons.value.associate { it.person.id to it.person }
         viewModelScope.launch(Dispatchers.IO) {
@@ -853,7 +882,8 @@ data class ReportTransactionsState(
     val received: Double = 0.0,
     val issued: Double = 0.0,
     val fromDate: Long = 0L,
-    val toDate: Long = 0L
+    val toDate: Long = 0L,
+    val allDates: Boolean = false
 ) {
     val balance: Double get() = received - issued
 }

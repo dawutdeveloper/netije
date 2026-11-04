@@ -6,6 +6,7 @@ import { ListFilters, TransactionDto } from './dto';
 import { User } from '../auth/user.entity';
 import { PersonsService } from '../persons/persons.service';
 import { v4 as uuid } from 'uuid';
+import { normalizeTags } from './tags';
 
 @Injectable()
 export class TransactionsService {
@@ -68,6 +69,7 @@ export class TransactionsService {
       purpose: dto.purpose,
       note: dto.note,
       attachments: dto.attachments ?? [],
+      tags: normalizeTags(dto.tags),
       changes: dto.changes ?? [],
       date: dto.date,
       time: dto.time,
@@ -91,6 +93,7 @@ export class TransactionsService {
       purpose: dto.purpose ?? t.purpose,
       note: dto.note ?? t.note,
       attachments: dto.attachments ?? t.attachments,
+      tags: dto.tags == null ? (t.tags ?? []) : normalizeTags(dto.tags),
       changes: this.mergeChanges(t, dto),
       date: dto.date ?? t.date,
       time: dto.time ?? t.time,
@@ -145,6 +148,7 @@ export class TransactionsService {
           purpose: d.purpose ?? existing.purpose,
           note: d.note ?? existing.note,
           attachments: d.attachments ?? existing.attachments,
+          tags: d.tags == null ? (existing.tags ?? []) : normalizeTags(d.tags),
           changes: this.mergeChanges(existing, d),
           date: d.date ?? existing.date,
           time: d.time ?? existing.time,
@@ -165,6 +169,7 @@ export class TransactionsService {
               purpose: d.purpose,
               note: d.note,
               attachments: d.attachments ?? [],
+              tags: normalizeTags(d.tags),
               changes: d.changes ?? [],
               date: d.date,
               time: d.time,

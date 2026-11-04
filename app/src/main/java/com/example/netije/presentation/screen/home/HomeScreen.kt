@@ -231,6 +231,7 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                             }
                             NetijeSearchBar(
                                 value = searchQuery,
+                                placeholder = stringResource(R.string.search_transactions_tags),
                                 onValueChange = { vm.search.value = it }
                             )
                         }
@@ -246,7 +247,7 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                stringResource(R.string.home_empty),
+                                stringResource(if (searchQuery.isBlank()) R.string.home_empty else R.string.search_no_transactions),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -256,6 +257,7 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                 items(state.persons, key = { it.person.id }) { pwt ->
                     ExpandablePersonCard(
                         pwt = pwt,
+                        expandForSearch = '#' in searchQuery,
                         currency = settingsState.settings.currencyCode,
                         onEditTransaction = { tx ->
                             nav.navigate(Routes.newTransaction(transactionId = tx.id))

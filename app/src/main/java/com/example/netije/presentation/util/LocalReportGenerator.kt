@@ -37,7 +37,8 @@ sealed interface ReportExportResult {
 }
 
 private fun Transaction.reportNote(): String = listOfNotNull(
-    parentTransactionId?.let { "Original transaction: $it" }, note
+    parentTransactionId?.let { "Original transaction: $it" }, note,
+    com.example.netije.domain.model.normalizeTransactionTags(tags).takeIf { it.isNotEmpty() }?.joinToString(" ")
 ).joinToString("\n")
 
 object LocalReportGenerator {

@@ -99,6 +99,10 @@ fun TransactionDetailScreen(
 
     var exportMenuExpanded by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var editingTags by remember { mutableStateOf(false) }
+    var tagsDraft by remember { mutableStateOf("") }
+    var savingTags by remember { mutableStateOf(false) }
+    var tagsSaveFailed by remember { mutableStateOf(false) }
 
     var showStatus by remember { mutableStateOf(false) }
     val tx: Transaction? = state.transaction
@@ -423,6 +427,28 @@ fun TransactionDetailScreen(
                     }
                 }
 
+                Card(
+                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                ) {
+                    Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Text(stringResource(R.string.transaction_tags), modifier = Modifier.weight(1f), fontWeight = FontWeight.SemiBold)
+                            IconButton(onClick = {
+                                tagsDraft = tx.tags.orEmpty().joinToString(" ")
+                                tagsSaveFailed = false
+                                editingTags = true
+                            }) {
+                                Icon(Icons.Default.Edit, contentDescription = stringResource(R.string.edit_transaction_tags))
+                            }
+                        }
+                        if (tx.tags.isEmpty()) Text(stringResource(R.string.transaction_tags_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        com.example.netije.presentation.component.TransactionTags(tx.tags, onTagClick = {
+                            nav.navigate(Routes.reportTransactions(it))
+                        })
+                    }
+                }
+
                 // ===== Note
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -544,6 +570,34 @@ fun TransactionDetailScreen(
                 Spacer(Modifier.height(16.dp))
             }
         }
+    }
+
+    if (editingTags && tx != null) {
+        AlertDialog(
+            onDismissRequest = { if (!savingTags) editingTags = false },
+            title = { Text(stringResource(R.string.edit_transaction_tags)) },
+            text = {
+                Column {
+                    com.example.netije.presentation.component.TransactionTagsField(tagsDraft, { tagsDraft = it }, enabled = !savingTags)
+                    if (tagsSaveFailed) Text(stringResource(R.string.save_failed), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            confirmButton = {
+                TextButton(enabled = !savingTags, onClick = {
+                    savingTags = true
+                    scope.launch {
+                        try {
+                            if (vm.saveTags(tagsDraft)) editingTags = false else tagsSaveFailed = true
+                        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                        catch (_: Exception) { tagsSaveFailed = true }
+                        finally { savingTags = false }
+                    }
+                }) { Text(stringResource(R.string.save)) }
+            },
+            dismissButton = {
+                TextButton(enabled = !savingTags, onClick = { editingTags = false }) { Text(stringResource(R.string.cancel)) }
+            }
+        )
     }
 
     if (showDeleteDialog && tx != null) {

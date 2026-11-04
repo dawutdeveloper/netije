@@ -93,6 +93,9 @@ fun NetijeNavHost(
             )
         ) { ReportUserScreen(nav = navController) }
         composable(Routes.REPORT_SUMMARY) { ReportSummaryScreen(nav = navController) }
-        composable(Routes.REPORT_TRANSACTIONS) { ReportTransactionsScreen(nav = navController) }
+        composable(
+            Routes.REPORT_TRANSACTIONS_SEARCH,
+            arguments = listOf(navArgument("search") { type = NavType.StringType; defaultValue = "" })
+        ) { ReportTransactionsScreen(nav = navController) }
     }
 }

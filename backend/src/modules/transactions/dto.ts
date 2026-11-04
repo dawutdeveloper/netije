@@ -31,6 +31,7 @@ export class TransactionDto {
   @IsOptional() @IsString() purpose?: string;
   @IsOptional() @IsString() note?: string;
   @IsOptional() @IsArray() attachments?: string[];
+  @IsOptional() @IsArray() @IsString({ each: true }) tags?: string[];
   @IsOptional() @IsArray() @ValidateNested({ each: true })
   @Type(() => TransactionChangeDto) changes?: TransactionChangeDto[];
   @IsInt() @Min(0) date: number;

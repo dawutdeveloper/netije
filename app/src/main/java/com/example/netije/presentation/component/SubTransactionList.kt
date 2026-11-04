@@ -115,6 +115,7 @@ fun SubTransactionList(children: List<Transaction>, original: Transaction, onCli
                             entry.note?.takeIf { it.isNotBlank() }?.let {
                                 HistoryField(stringResource(R.string.tx_note), it)
                             }
+                            TransactionTags(entry.tags)
                             if (entry.attachments.isNotEmpty()) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Icon(Icons.Default.AttachFile, contentDescription = null, modifier = Modifier.size(16.dp),

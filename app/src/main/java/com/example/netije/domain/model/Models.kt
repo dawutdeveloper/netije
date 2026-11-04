@@ -109,7 +109,8 @@ data class Transaction(
     val updatedAt: Long = System.currentTimeMillis(),
     val changes: List<TransactionChange> = emptyList(),
     val status: TransactionStatus = TransactionStatus.ACTIVE,
-    val parentTransactionId: String? = null
+    val parentTransactionId: String? = null,
+    val tags: List<String> = emptyList()
 )
 
 data class TransactionGroup(val transaction: Transaction, val children: List<Transaction>) {

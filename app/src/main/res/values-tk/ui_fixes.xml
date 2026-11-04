@@ -31,4 +31,13 @@
     <string name="backup_import_card_hint">Ýazgylary dikeltmek üçin saklanan nusgany saýlaň.</string>
     <string name="backup_export_card_hint">Ýazgylary we goşundylary saklamak ýa-da geçirmek üçin faýla ýazyň.</string>
     <string name="backup_local_card_hint">Bu telefonda saklanan nusgalary görüň we dikeldiň.</string>
+    <string name="transaction_tags">Tegler</string>
+    <string name="transaction_tags_placeholder">#iş #kireý</string>
+    <string name="transaction_tags_hint">Tegleri boşluk ýa-da otur bilen aýryň. # belgisi awtomatik goşular.</string>
+    <string name="transaction_tags_empty">Entek teg ýok. Amaly çalt tapmak üçin teg goşuň.</string>
+    <string name="edit_transaction_tags">Tegleri üýtgetmek</string>
+    <string name="search_transactions_tags">At, düşündiriş ýa-da #teg boýunça gözle</string>
+    <string name="search_all_dates">Ähli seneler</string>
+    <string name="search_choose_dates">Seneleri saýlamak</string>
+    <string name="search_no_transactions">Gabat gelýän amal ýok. Başga tegi synap görüň ýa-da süzgüçleri üýtgediň.</string>
 </resources>

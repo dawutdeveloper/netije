@@ -37,6 +37,7 @@ export class Transaction {
   @Column({ nullable: true }) purpose?: string;
   @Column({ nullable: true, type: 'text' }) note?: string;
   @Column({ type: 'text', array: true, default: '{}' }) attachments: string[];
+  @Column({ type: 'text', array: true, default: '{}' }) tags: string[];
 
   @Column({ type: 'jsonb', default: () => "'[]'::jsonb" }) changes: TransactionChangeDto[];
 

@@ -123,6 +123,7 @@ fun NewTransactionScreen(
     val purpose by vm.purpose.collectAsState()
     val amount by vm.amount.collectAsState()
     val note by vm.note.collectAsState()
+    val tags by vm.tags.collectAsState()
     val attachments by vm.attachments.collectAsState()
     val ready by vm.ready.collectAsState()
     var saving by remember { mutableStateOf(false) }
@@ -522,6 +523,8 @@ fun NewTransactionScreen(
                         }
                     }
                 }
+                com.example.netije.presentation.component.TransactionTagsField(tags, { vm.tags.value = it })
+                Spacer(Modifier.height(16.dp))
                 LabeledRow(stringResource(R.string.tx_note)) {
                     NetijeTextField(
                         value = note,

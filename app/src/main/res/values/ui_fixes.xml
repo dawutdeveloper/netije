@@ -31,4 +31,13 @@
     <string name="backup_import_card_hint">Выберите сохранённую копию для восстановления записей.</string>
     <string name="backup_export_card_hint">Сохраните записи и вложения в файл для хранения или переноса.</string>
     <string name="backup_local_card_hint">Просмотрите и восстановите копии, сохранённые на этом телефоне.</string>
+    <string name="transaction_tags">Теги</string>
+    <string name="transaction_tags_placeholder">#работа #аренда</string>
+    <string name="transaction_tags_hint">Разделяйте теги пробелами или запятыми. Знак # добавится автоматически.</string>
+    <string name="transaction_tags_empty">Тегов пока нет. Добавьте их для быстрого поиска операции.</string>
+    <string name="edit_transaction_tags">Изменить теги</string>
+    <string name="search_transactions_tags">Поиск по имени, примечанию или #тегу</string>
+    <string name="search_all_dates">Все даты</string>
+    <string name="search_choose_dates">Выбрать даты</string>
+    <string name="search_no_transactions">Подходящих операций нет. Попробуйте другой тег или измените фильтры.</string>
 </resources>

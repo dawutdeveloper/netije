@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
     entities = [UserEntity::class, PersonEntity::class, TransactionEntity::class],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 abstract class NetijeDatabase : RoomDatabase() {
@@ -16,6 +16,11 @@ abstract class NetijeDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
 
     companion object {
+        val MIGRATION_5_6 = object : androidx.room.migration.Migration(5, 6) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'")
+            }
+        }
         val MIGRATION_4_5 = object : androidx.room.migration.Migration(4, 5) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE transactions ADD COLUMN parentTransactionId TEXT")
@@ -48,7 +53,7 @@ abstract class NetijeDatabase : RoomDatabase() {
                     context.applicationContext,
                     NetijeDatabase::class.java,
                     "netije_db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6).build().also { INSTANCE = it }
             }
     }
 }

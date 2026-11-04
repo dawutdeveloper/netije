@@ -44,6 +44,10 @@ object BackupCodec {
             require(t.get("id").asString.isNotBlank() && t.get("personId").asString in peopleById)
             require(t.get("type").asString in TransactionType.entries.map { it.name })
             t.defaults("attachments", "[]"); t.defaults("changes", "[]")
+            t.defaults("tags", "[]")
+            t.defaults("currency", "\"TMT\"")
+            require(t.get("tags").isJsonArray && t.getAsJsonArray("tags").all { it.isJsonPrimitive && it.asJsonPrimitive.isString })
+            t.add("tags", gson.toJsonTree(normalizeTransactionTags(t.getAsJsonArray("tags").map { it.asString })))
             // Old backups attached status to the person. Carry that grouping onto each transaction.
             t.defaults("status", "\"${peopleById.getValue(t.get("personId").asString).status.name}\"")
             require(t.get("status").asString in TransactionStatus.entries.map { it.name })

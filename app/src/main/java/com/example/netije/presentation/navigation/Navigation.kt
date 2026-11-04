@@ -62,6 +62,8 @@ object Routes {
     const val REPORT_USER = "report_user?personId={personId}"
     const val REPORT_SUMMARY = "report_summary"
     const val REPORT_TRANSACTIONS = "report_transactions"
+    const val REPORT_TRANSACTIONS_SEARCH = "report_transactions?search={search}"
+    fun reportTransactions(search: String) = "report_transactions?search=${android.net.Uri.encode(search)}"
 
     fun newTransaction(
         personId: String? = null,

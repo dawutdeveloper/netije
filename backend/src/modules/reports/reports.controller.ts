@@ -107,6 +107,7 @@ export class ReportsController {
       Назначение: t.purpose ?? '',
       Сумма: t.amount,
       Валюта: t.currency,
+      Теги: (t.tags ?? []).join(' '),
       Примечание: t.note ?? '',
     }));
     if (format === 'xlsx') {
