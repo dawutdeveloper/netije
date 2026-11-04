@@ -93,6 +93,7 @@ fun PersonDetailScreen(
     var deleteDialog by remember { mutableStateOf(false) }
     var transactionStatus by remember { mutableStateOf<com.example.netije.domain.model.TransactionStatus?>(com.example.netije.domain.model.TransactionStatus.ACTIVE) }
     val transactions = state.transactions.filter { transactionStatus == null || it.status == transactionStatus }
+    val originalTransactionCount = transactions.count { it.parentTransactionId == null }
     val person = state.person
 
     if (deleteDialog) {
@@ -227,7 +228,7 @@ fun PersonDetailScreen(
                 }
             }
             item { com.example.netije.presentation.component.TransactionStatusFilter(transactionStatus, { transactionStatus = it }) }
-            item { SectionHeader(text = "${stringResource(R.string.transactions_header)} (${transactions.size})") }
+            item { SectionHeader(text = "${stringResource(R.string.transactions_header)} ($originalTransactionCount)") }
             if (transactions.isEmpty()) {
                 item {
                     Box(

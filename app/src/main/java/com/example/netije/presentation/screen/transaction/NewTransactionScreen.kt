@@ -365,10 +365,11 @@ fun NewTransactionScreen(
                 // ══════════════════════════════════════════════════════════════
                 //  "Контактное лицо" field:
                 //  - Hidden when coming from PersonDetail screen (preselectedPersonId != null)
+                //  - Hidden for sub-transactions: their contact is inherited from the original.
                 //  - Shown when coming from Calendar screen (date preset, person = null)
                 //  - When user selects → person's name appears here INSTEAD of placeholder
                 // ══════════════════════════════════════════════════════════════
-                if (preselectedPersonId == null) {
+                if (preselectedPersonId == null && !addingSubTransaction) {
                     Spacer(Modifier.height(20.dp))
                     val contactHint = stringResource(R.string.contact_person_hint)
                     LabeledRow(stringResource(R.string.contact_person_required)) {
