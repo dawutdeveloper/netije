@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,6 +26,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -67,8 +72,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.text.font.FontWeight
@@ -94,7 +102,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NewTransactionScreen(
     nav: NavController,
@@ -120,6 +128,16 @@ fun NewTransactionScreen(
     var saving by remember { mutableStateOf(false) }
     var submitted by remember { mutableStateOf(false) }
     var saveFailed by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
+    val amountVisibilityRequester = remember { BringIntoViewRequester() }
+    var amountFocused by remember { mutableStateOf(false) }
+    val keyboardHeight = WindowInsets.ime.getBottom(density)
+    var saveBarHeight by remember { mutableStateOf(84.dp) }
+
+    // Recheck after keyboard insets change so the whole field stays above the IME.
+    LaunchedEffect(amountFocused, keyboardHeight) {
+        if (amountFocused) amountVisibilityRequester.bringIntoView()
+    }
 
     // Navigation arguments initialize the ViewModel once; picker results update its draft.
     val picked by (pickerState?.getStateFlow<ArrayList<String>?>("picked_person", null)
@@ -233,6 +251,7 @@ fun NewTransactionScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(bottom = saveBarHeight)
                     .padding(horizontal = 20.dp)
                     .verticalScroll(rememberScrollState()),
             ) {
@@ -470,6 +489,9 @@ fun NewTransactionScreen(
                 LabeledRow(stringResource(if (!addingSubTransaction) R.string.tx_amount else if (type == TransactionType.RECEIVED) R.string.amount_to_add else R.string.amount_to_subtract)) {
                     NetijeTextField(
                         value = amount,
+                        modifier = Modifier.bringIntoViewRequester(amountVisibilityRequester)
+                            .onFocusChanged { amountFocused = it.isFocused },
+                        singleLine = true,
                         placeholder = "0.00",
                         onValueChange = { s -> vm.setAmount(s) },
                         keyboardOptions = KeyboardOptions(
@@ -477,29 +499,12 @@ fun NewTransactionScreen(
                             imeAction = ImeAction.Done
                         ),
                         trailing = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .clip(CircleShape)
-                                        .background(androidx.compose.ui.graphics.Color(0xFFCE1126)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(12.dp)
-                                            .clip(CircleShape)
-                                            .background(androidx.compose.ui.graphics.Color(0xFF008000))
-                                    )
-                                }
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    stringResource(R.string.currency_symbol),
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                Spacer(Modifier.width(10.dp))
-                            }
+                            Text(
+                                stringResource(R.string.currency_symbol),
+                                modifier = Modifier.padding(horizontal = 12.dp),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     )
                 }
@@ -634,13 +639,14 @@ fun NewTransactionScreen(
                 if (submitted && pid.isNullOrBlank()) Text(stringResource(R.string.validation_contact), color = MaterialTheme.colorScheme.error)
                 if (submitted && com.example.netije.domain.model.parseMoney(amount) == null) Text(stringResource(R.string.validation_amount), color = MaterialTheme.colorScheme.error)
                 if (saveFailed) Text(stringResource(R.string.save_failed), color = MaterialTheme.colorScheme.error)
-                Spacer(Modifier.height(120.dp))
+                Spacer(Modifier.height(24.dp))
             }
 
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
+                    .onSizeChanged { saveBarHeight = with(density) { it.height.toDp() } }
                     .padding(horizontal = 18.dp, vertical = 18.dp)
             ) {
                 Button(
@@ -839,12 +845,14 @@ private fun NetijeTextField(
     onValueChange: (String) -> Unit,
     minLines: Int = 1,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    trailing: @Composable (() -> Unit)? = null
+    trailing: @Composable (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    singleLine: Boolean = false
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         placeholder = {
             Text(
                 placeholder,
@@ -853,6 +861,7 @@ private fun NetijeTextField(
         },
         trailingIcon = trailing,
         minLines = minLines,
+        singleLine = singleLine,
         shape = RoundedCornerShape(18.dp),
         colors = TextFieldDefaults.colors(
             focusedContainerColor = MaterialTheme.colorScheme.surface,

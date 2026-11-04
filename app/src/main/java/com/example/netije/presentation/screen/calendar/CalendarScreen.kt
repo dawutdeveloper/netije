@@ -28,6 +28,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ChevronLeft
@@ -57,6 +59,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.netije.R
@@ -70,6 +73,7 @@ import com.example.netije.presentation.component.NetijeAvatar
 import com.example.netije.presentation.component.PlusFAB
 import com.example.netije.presentation.component.TransactionRow
 import com.example.netije.presentation.navigation.Routes
+import com.example.netije.presentation.util.formatCalendarAmount
 import com.example.netije.presentation.viewmodel.CalendarViewModel
 import com.example.netije.presentation.viewmodel.SettingsViewModel
 import com.example.netije.ui.theme.NegativeRed
@@ -333,12 +337,14 @@ private fun CalendarGrid(
                                         net < 0 -> NegativeRed
                                         else -> MaterialTheme.colorScheme.onSurface
                                     }
-                                    val sign = if (net > 0) "+" else if (net < 0) "-" else ""
-                                    Text(
-                                        text = "$sign${String.format("%.2f", kotlin.math.abs(net))}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = netColor,
-                                        fontWeight = FontWeight.SemiBold,
+                                    BasicText(
+                                        text = formatCalendarAmount(net, locale),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            color = netColor, fontWeight = FontWeight.SemiBold,
+                                            textAlign = TextAlign.Center
+                                        ),
+                                        autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 12.sp),
                                         maxLines = 1,
                                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                                     )
