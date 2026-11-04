@@ -76,13 +76,9 @@ import com.example.netije.domain.model.Transaction
 import com.example.netije.domain.model.TransactionType
 import com.example.netije.ui.theme.NegativeRed
 import com.example.netije.ui.theme.PositiveGreen
-import com.example.netije.ui.theme.PrimaryBlue
-import com.example.netije.ui.theme.PrimaryBlueContainer
 
 private val avatarColors = listOf(
-    Color(0xFF2563EB), Color(0xFF0891B2), Color(0xFF059669),
-    Color(0xFFD97706), Color(0xFFDC2626), Color(0xFF7C3AED),
-    Color(0xFFDB2777), Color(0xFF475569), Color(0xFF0D9488)
+    Color(0xFF424242), Color(0xFF616161), Color(0xFF757575), Color(0xFF505050)
 )
 
 private fun avatarColorFor(text: String): Color =
@@ -172,9 +168,9 @@ fun NetijeFilterChip(
         modifier = modifier,
         shape = RoundedCornerShape(18.dp),
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = PrimaryBlue,
-            selectedLabelColor = Color.White,
-            selectedLeadingIconColor = Color.White,
+            selectedContainerColor = MaterialTheme.colorScheme.primary,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
             labelColor = MaterialTheme.colorScheme.onSurface
         ),
@@ -385,8 +381,8 @@ fun PersonFAB(
     FloatingActionButton(
         onClick = onClick,
         modifier = modifier.size(56.dp),
-        containerColor = PrimaryBlue,
-        contentColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
         shape = RoundedCornerShape(16.dp)
     ) {
         Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.add_person_accessibility), modifier = Modifier.size(24.dp))
@@ -401,8 +397,8 @@ fun PlusFAB(
     FloatingActionButton(
         onClick = onClick,
         modifier = modifier.size(56.dp),
-        containerColor = PrimaryBlue,
-        contentColor = Color.White,
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
         shape = RoundedCornerShape(16.dp)
     ) {
         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_transaction_accessibility), modifier = Modifier.size(24.dp))

@@ -63,7 +63,6 @@ import com.example.netije.presentation.component.NetijeSearchBar
 import com.example.netije.presentation.component.PersonFAB
 import com.example.netije.presentation.navigation.Routes
 import com.example.netije.presentation.viewmodel.SelectContactViewModel
-import com.example.netije.ui.theme.PrimaryBlue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

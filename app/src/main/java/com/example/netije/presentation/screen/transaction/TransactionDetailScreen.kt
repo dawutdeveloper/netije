@@ -75,7 +75,6 @@ import com.example.netije.presentation.util.ReportFormat
 import com.example.netije.presentation.viewmodel.TransactionDetailViewModel
 import com.example.netije.ui.theme.NegativeRed
 import com.example.netije.ui.theme.PositiveGreen
-import com.example.netije.ui.theme.PrimaryBlue
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -206,7 +205,7 @@ fun TransactionDetailScreen(
                     .fillMaxSize()
                     .padding(pad),
                 contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator(color = PrimaryBlue) }
+            ) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
 
             state.notFound -> Box(
                 modifier = Modifier
@@ -282,12 +281,12 @@ fun TransactionDetailScreen(
                                         modifier = Modifier
                                             .size(30.dp)
                                             .clip(CircleShape)
-                                            .background(PrimaryBlue),
+                                            .background(MaterialTheme.colorScheme.primary),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text(
                                             text = person.name.take(1).uppercase(),
-                                            color = Color.White,
+                                            color = MaterialTheme.colorScheme.onPrimary,
                                             fontWeight = FontWeight.SemiBold,
                                             fontSize = 13.sp
                                         )

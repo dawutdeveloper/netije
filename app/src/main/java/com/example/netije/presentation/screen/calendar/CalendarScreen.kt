@@ -74,7 +74,6 @@ import com.example.netije.presentation.viewmodel.CalendarViewModel
 import com.example.netije.presentation.viewmodel.SettingsViewModel
 import com.example.netije.ui.theme.NegativeRed
 import com.example.netije.ui.theme.PositiveGreen
-import com.example.netije.ui.theme.PrimaryBlue
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -308,7 +307,7 @@ private fun CalendarGrid(
                                 .clip(RoundedCornerShape(14.dp))
                                 .then(
                                     if (isSel) Modifier
-                                        .border(2.dp, PrimaryBlue, RoundedCornerShape(14.dp))
+                                        .border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(14.dp))
                                         .background(MaterialTheme.colorScheme.primaryContainer)
                                     else Modifier
                                 )

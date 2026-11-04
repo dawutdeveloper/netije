@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="theme_background">#000000</color>
+    <color name="theme_surface">#121212</color>
+    <color name="theme_surface_variant">#242424</color>
+    <color name="theme_on_surface">#FFFFFF</color>
+    <color name="theme_primary">#FFFFFF</color>
+    <color name="theme_on_primary">#000000</color>
+    <color name="theme_outline">#383838</color>
+    <bool name="theme_light_system_bars">false</bool>
+</resources>

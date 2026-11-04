@@ -54,7 +54,6 @@ import com.example.netije.presentation.component.BalanceAmountText
 import com.example.netije.presentation.component.NetijeAvatar
 import com.example.netije.presentation.util.ReportFormat
 import com.example.netije.presentation.viewmodel.ReportSummaryViewModel
-import com.example.netije.ui.theme.PrimaryBlue
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,8 +101,8 @@ fun ReportSummaryScreen(
             Box {
                 ExtendedFloatingActionButton(
                     onClick = { showExport = true },
-                    containerColor = PrimaryBlue,
-                    contentColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = RoundedCornerShape(20.dp),
                     icon = { Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(22.dp)) },
                     text = { Text(stringResource(R.string.export), fontWeight = FontWeight.SemiBold) }

@@ -1,10 +1,7 @@
 package com.example.netije.presentation.util
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Typeface
-import android.graphics.pdf.PdfDocument
+import com.example.netije.R
 import com.example.netije.domain.model.FinanceSummary
 import com.example.netije.domain.model.Person
 import com.example.netije.domain.model.PersonWithTransactions
@@ -12,18 +9,15 @@ import com.example.netije.domain.model.ReportSummaryRow
 import com.example.netije.domain.model.Transaction
 import com.example.netije.domain.model.TransactionType
 import java.io.File
-import java.io.FileOutputStream
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-private val currencyFmt = DecimalFormat("#,##0.00")
+private val currencyFmt get() = DecimalFormat("#,##0.00")
 private val bomBytes = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
 
 private fun dateOnlyFormat(locale: Locale) = SimpleDateFormat("yyyy-MM-dd", locale)
-private fun dateTimeFormat(locale: Locale) = SimpleDateFormat("yyyy-MM-dd HH:mm", locale)
 
 private fun String.csvEscape(): String =
     "\"${replace("\"", "\"\"").replace("\r", "").replace("\n", "\\n")}\""
@@ -129,74 +123,17 @@ object LocalReportGenerator {
         person: Person?,
         context: Context
     ): Boolean = runCatching {
-        val locale = Locale.getDefault()
-        val dfDT = dateTimeFormat(locale)
-        val pageWidth = 595
-        val pageHeight = 842
-        val margin = 48f
-        val doc = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
-        val page = doc.startPage(pageInfo)
-        val canvas: Canvas = page.canvas
-
-        val titlePaint = Paint().apply {
-            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-            textSize = 22f
-            color = android.graphics.Color.parseColor("#1F6FEB")
-        }
-        val headerPaint = Paint().apply {
-            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-            textSize = 12f
-            color = android.graphics.Color.parseColor("#374151")
-        }
-        val valuePaint = Paint().apply {
-            typeface = Typeface.SANS_SERIF
-            textSize = 12f
-            color = android.graphics.Color.parseColor("#111827")
-        }
-        val smallPaint = Paint().apply {
-            typeface = Typeface.SANS_SERIF
-            textSize = 10f
-            color = android.graphics.Color.parseColor("#6B7280")
-        }
-
-        var y = margin
-        canvas.drawText("NETIJE — Transaction Receipt", margin, y, titlePaint)
-        y += 32
-        canvas.drawText("Generated: ${dfDT.format(Date())}", margin, y, smallPaint)
-        y += 24
-
-        val summary = mapOf(
-            "ID" to tx.id,
-            "Person" to (person?.name ?: "—"),
-            "Phone" to (person?.phones?.firstOrNull() ?: "—"),
-            "Type" to tx.type.name,
-            "Amount" to "${currencyFmt.format(tx.amount)} ${tx.currency}",
-            "Date" to dfDT.format(Date(tx.date)),
-            "Purpose" to tx.purpose.orEmpty().ifBlank { "—" },
-            "Note" to tx.reportNote().ifBlank { "—" },
-            "Attachments" to tx.attachments.size.toString()
-        )
-        val col1 = margin
-        val col2 = margin + 110
-        for ((k, v) in summary) {
-            canvas.drawText("$k:", col1, y, headerPaint)
-            drawWrappedText(canvas, v, col2, y, pageWidth - margin - col2, valuePaint)
-            y += 20
-        }
-        y += 20
-        if (tx.attachments.isNotEmpty()) {
-            canvas.drawText("Attachment paths:", margin, y, headerPaint)
-            y += 18
-            tx.attachments.forEach { a ->
-                drawWrappedText(canvas, "• $a", margin + 12f, y, pageWidth - 2 * margin - 12f, smallPaint)
-                y += 18
+        ReportPdfWriter().use { pdf ->
+            pdf.heading("NETIJE - ${context.getString(R.string.transaction_detail_title)}")
+            pdf.paragraph("ID: ${tx.id}")
+            pdf.paragraph("${context.getString(R.string.person_name)}: ${person?.name.orEmpty()}")
+            pdf.transactionTable(listOf(tx), listOfNotNull(person).associateBy { it.id }, context)
+            if (tx.attachments.isNotEmpty()) {
+                pdf.paragraph("${context.getString(R.string.tx_attachments)}: ${tx.attachments.size}")
+                tx.attachments.forEach(pdf::paragraph)
             }
+            pdf.writeTo(file)
         }
-
-        doc.finishPage(page)
-        FileOutputStream(file).use { doc.writeTo(it) }
-        doc.close()
         true
     }.getOrElse { it.printStackTrace(); false }
 
@@ -317,113 +254,14 @@ object LocalReportGenerator {
         toDate: Long,
         context: Context
     ): Boolean = runCatching {
-        val locale = Locale.getDefault()
-        val dfD = dateOnlyFormat(locale)
-        val dfDT = dateTimeFormat(locale)
-        val recv = transactions.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
-        val iss = transactions.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
-        val bal = recv - iss
-
-        writeMultiPagePdf(file, pageWidth = 842, pageHeight = 595) { canvas, pageIndex, pageWidth, pageHeight, stateRef ->
-            val margin = 40f
-            val titlePaint = Paint().apply {
-                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-                textSize = 22f
-                color = android.graphics.Color.parseColor("#1F6FEB")
-            }
-            val headerPaint = Paint().apply {
-                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-                textSize = 12f
-                color = android.graphics.Color.WHITE
-            }
-            val valuePaint = Paint().apply {
-                typeface = Typeface.SANS_SERIF
-                textSize = 11f
-                color = android.graphics.Color.parseColor("#111827")
-            }
-            val metaPaint = Paint().apply {
-                typeface = Typeface.SANS_SERIF
-                textSize = 12f
-                color = android.graphics.Color.parseColor("#374151")
-            }
-            val boldMeta = Paint().apply {
-                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-                textSize = 12f
-                color = android.graphics.Color.parseColor("#111827")
-            }
-            val smallPaint = Paint().apply {
-                typeface = Typeface.SANS_SERIF
-                textSize = 10f
-                color = android.graphics.Color.parseColor("#6B7280")
-            }
-            val greenPaint = Paint(valuePaint).apply { color = android.graphics.Color.parseColor("#059669") }
-            val redPaint = Paint(valuePaint).apply { color = android.graphics.Color.parseColor("#DC2626") }
-
-            var y = margin
-            if (pageIndex == 0) {
-                canvas.drawText("NETIJE — Personal Report", margin, y, titlePaint)
-                y += 30
-                canvas.drawText("Generated: ${dfDT.format(Date())}", margin, y, smallPaint)
-                y += 22
-
-                canvas.drawText("Person: ", margin, y, boldMeta); canvas.drawText(pwt.person.name, margin + 90, y, metaPaint)
-                y += 18
-                canvas.drawText("Phone:  ", margin, y, boldMeta); canvas.drawText(pwt.person.phones.firstOrNull().orEmpty(), margin + 90, y, metaPaint)
-                y += 18
-                canvas.drawText("Range:  ", margin, y, boldMeta)
-                canvas.drawText("${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}", margin + 90, y, metaPaint)
-                y += 26
-                canvas.drawText("Received: ${currencyFmt.format(recv)} $currencyCode", margin, y, greenPaint)
-                y += 18
-                canvas.drawText("Issued:   ${currencyFmt.format(iss)} $currencyCode", margin, y, redPaint)
-                y += 18
-                canvas.drawText("Balance:  ${currencyFmt.format(bal)} $currencyCode", margin, y, boldMeta)
-                y += 32
-            }
-
-            val contentWidth = pageWidth - 2 * margin
-            val colDate = 0f
-            val colType = contentWidth * 0.12f
-            val colAmt = contentWidth * 0.22f
-            val colPurpose = contentWidth * 0.35f
-            val colNote = contentWidth * 0.66f
-
-            val headerBg = android.graphics.Paint().apply { color = android.graphics.Color.parseColor("#1F6FEB") }
-            canvas.drawRect(margin + colDate, y, margin + contentWidth, y + 22, headerBg)
-            y += 16
-            canvas.drawText("Date", margin + colDate + 6, y, headerPaint)
-            canvas.drawText("Type", margin + colType + 6, y, headerPaint)
-            canvas.drawText("Amount", margin + colAmt + 6, y, headerPaint)
-            canvas.drawText("Purpose", margin + colPurpose + 6, y, headerPaint)
-            canvas.drawText("Note", margin + colNote + 6, y, headerPaint)
-            y += 12
-            val border = android.graphics.Paint().apply { color = android.graphics.Color.parseColor("#E5E7EB"); style = Paint.Style.STROKE; strokeWidth = 0.5f }
-
-            var startIdx = stateRef.get() as? Int ?: 0
-            var written = 0
-            for (i in startIdx until transactions.size) {
-                val tx = transactions[i]
-                val rowTop = y
-                val rowH = 22f
-                val rectPaint = if (i % 2 == 0) android.graphics.Paint().apply { color = android.graphics.Color.parseColor("#F9FAFB") } else null
-                rectPaint?.let { canvas.drawRect(margin, rowTop, margin + contentWidth, rowTop + rowH, it) }
-                canvas.drawLine(margin, rowTop, margin + contentWidth, rowTop, border)
-                canvas.drawText(dfD.format(Date(tx.date)), margin + colDate + 6, rowTop + 15f, valuePaint)
-                canvas.drawText(tx.type.name.take(6), margin + colType + 6, rowTop + 15f, if (tx.type == TransactionType.RECEIVED) greenPaint else redPaint)
-                canvas.drawText("${currencyFmt.format(tx.amount)} $currencyCode", margin + colAmt + 6, rowTop + 15f, valuePaint)
-                val purposeText = if (tx.purpose.isNullOrBlank()) "—" else tx.purpose
-                drawClipped(canvas, purposeText, margin + colPurpose + 6, rowTop + 15f, colNote - colPurpose - 12, valuePaint)
-                val noteText = if (tx.note.isNullOrBlank()) "—" else tx.note
-                drawClipped(canvas, noteText, margin + colNote + 6, rowTop + 15f, contentWidth - colNote - 12, valuePaint)
-                y += rowH
-                written++
-                startIdx = i + 1
-                if (y > pageHeight - margin - 30) break
-            }
-            stateRef.set(startIdx)
-
-            val more: Int = transactions.size - (stateRef.get() as? Int ?: 0)
-            more
+        val received = transactions.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
+        val issued = transactions.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
+        ReportPdfWriter().use { pdf ->
+            pdf.heading("NETIJE - ${context.getString(R.string.report_user_title)}")
+            pdf.paragraph(personLabel(pwt.person))
+            pdf.reportHeader(fromDate, toDate, currencyCode, FinanceSummary(received, issued), context)
+            pdf.transactionTable(transactions, mapOf(pwt.person.id to pwt.person), context)
+            pdf.writeTo(file)
         }
         true
     }.getOrElse { it.printStackTrace(); false }
@@ -485,6 +323,9 @@ object LocalReportGenerator {
         val locale = Locale.getDefault()
         val dfD = dateOnlyFormat(locale)
         val writer = XlsxWriter()
+        // Open on the actual transactions; keep aggregate totals on a separate tab.
+        writer.newSheet("Transactions")
+        writer.addTransactionRows(rows.flatMap { it.transactions }, rows.associate { it.person.id to it.person })
         writer.newSheet("Summary")
         writer.addMetaRow("Currency", currencyCode)
         writer.addMetaRow("Range", "${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}")
@@ -530,86 +371,22 @@ object LocalReportGenerator {
         toDate: Long,
         context: Context
     ): Boolean = runCatching {
-        val locale = Locale.getDefault()
-        val dfD = dateOnlyFormat(locale)
-        val dfDT = dateTimeFormat(locale)
-        writeMultiPagePdf(file, pageWidth = 842, pageHeight = 595) { canvas, pageIndex, pageWidth, pageHeight, stateRef ->
-            val margin = 40f
-            val titlePaint = Paint().apply {
-                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-                textSize = 22f
-                color = android.graphics.Color.parseColor("#1F6FEB")
-            }
-            val headerPaint = Paint().apply {
-                typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-                textSize = 12f; color = android.graphics.Color.WHITE
-            }
-            val valuePaint = Paint().apply { typeface = Typeface.SANS_SERIF; textSize = 11f; color = android.graphics.Color.parseColor("#111827") }
-            val boldMeta = Paint().apply { typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD); textSize = 12f }
-            val metaPaint = Paint(valuePaint).apply { textSize = 12f }
-            val smallPaint = Paint(valuePaint).apply { textSize = 10f; color = android.graphics.Color.parseColor("#6B7280") }
-            val greenPaint = Paint(valuePaint).apply { color = android.graphics.Color.parseColor("#059669") }
-            val redPaint = Paint(valuePaint).apply { color = android.graphics.Color.parseColor("#DC2626") }
-
-            var y = margin
-            if (pageIndex == 0) {
-                canvas.drawText("NETIJE — Finance Summary Report", margin, y, titlePaint); y += 30
-                canvas.drawText("Generated: ${dfDT.format(Date())}", margin, y, smallPaint); y += 22
-                canvas.drawText("Range:     ${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}", margin, y, metaPaint); y += 18
-                canvas.drawText("Currency:  $currencyCode", margin, y, metaPaint); y += 18
-                canvas.drawText("Persons:   ${rows.size}", margin, y, metaPaint); y += 26
-                canvas.drawText("Received:  ${currencyFmt.format(total.totalReceived)} $currencyCode", margin, y, greenPaint); y += 18
-                canvas.drawText("Issued:    ${currencyFmt.format(total.totalIssued)} $currencyCode", margin, y, redPaint); y += 18
-                canvas.drawText("Balance:   ${currencyFmt.format(total.totalReceived - total.totalIssued)} $currencyCode", margin, y, boldMeta); y += 30
-            }
-
-            val contentWidth = pageWidth - 2 * margin
-            val colPerson = 0f
-            val colPhone = contentWidth * 0.30f
-            val colCount = contentWidth * 0.48f
-            val colRecv = contentWidth * 0.55f
-            val colIssued = contentWidth * 0.72f
-            val colBalance = contentWidth * 0.88f
-
-            val headerBg = android.graphics.Paint().apply { color = android.graphics.Color.parseColor("#1F6FEB") }
-            canvas.drawRect(margin + colPerson, y, margin + contentWidth, y + 22, headerBg)
-            y += 16
-            canvas.drawText("Person", margin + colPerson + 6, y, headerPaint)
-            canvas.drawText("Phone", margin + colPhone + 6, y, headerPaint)
-            canvas.drawText("#Tx", margin + colCount + 6, y, headerPaint)
-            canvas.drawText("Received", margin + colRecv + 6, y, headerPaint)
-            canvas.drawText("Issued", margin + colIssued + 6, y, headerPaint)
-            canvas.drawText("Balance", margin + colBalance + 6, y, headerPaint)
-            y += 12
-
-            val border = android.graphics.Paint().apply { color = android.graphics.Color.parseColor("#E5E7EB"); style = Paint.Style.STROKE; strokeWidth = 0.5f }
-            var startIdx = stateRef.get() as? Int ?: 0
-            for (i in startIdx until rows.size) {
-                val r = rows[i]
-                val rowTop = y
-                val rowH = 22f
-                if (i % 2 == 0) {
-                    val bg = android.graphics.Paint().apply { color = android.graphics.Color.parseColor("#F9FAFB") }
-                    canvas.drawRect(margin, rowTop, margin + contentWidth, rowTop + rowH, bg)
-                }
-                canvas.drawLine(margin, rowTop, margin + contentWidth, rowTop, border)
-                canvas.drawText(r.person.name, margin + colPerson + 6, rowTop + 15f, valuePaint)
-                canvas.drawText(r.person.phones.firstOrNull().orEmpty(), margin + colPhone + 6, rowTop + 15f, valuePaint)
-                canvas.drawText(r.count.toString(), margin + colCount + 6, rowTop + 15f, valuePaint)
-                canvas.drawText("${currencyFmt.format(r.received)} $currencyCode", margin + colRecv + 6, rowTop + 15f, greenPaint)
-                canvas.drawText("${currencyFmt.format(r.issued)} $currencyCode", margin + colIssued + 6, rowTop + 15f, redPaint)
-                val balPaint = when {
-                    r.balance > 0.005 -> greenPaint
-                    r.balance < -0.005 -> redPaint
-                    else -> valuePaint
-                }
-                canvas.drawText("${currencyFmt.format(r.balance)} $currencyCode", margin + colBalance + 6, rowTop + 15f, balPaint)
-                y += rowH
-                startIdx = i + 1
-                if (y > pageHeight - margin - 30) break
-            }
-            stateRef.set(startIdx)
-            rows.size - startIdx
+        ReportPdfWriter().use { pdf ->
+            pdf.heading("NETIJE - ${context.getString(R.string.report_summary_title)}")
+            pdf.reportHeader(fromDate, toDate, currencyCode, total, context)
+            pdf.table(
+                listOf(context.getString(R.string.person_name),
+                    context.getString(R.string.person_phone),
+                    "#", context.getString(R.string.tx_received),
+                    context.getString(R.string.tx_issued),
+                    context.getString(R.string.summary_balance)),
+                listOf(2.2f, 1.5f, 0.5f, 1.4f, 1.4f, 1.4f),
+                rows.map { row -> listOf(row.person.name, row.person.firstPhone.orEmpty(), row.count.toString(),
+                    currencyFmt.format(row.received), currencyFmt.format(row.issued), currencyFmt.format(row.balance)) }
+            )
+            pdf.heading(context.getString(R.string.report_transactions_title))
+            pdf.transactionTable(rows.flatMap { it.transactions }, rows.associate { it.person.id to it.person }, context)
+            pdf.writeTo(file)
         }
         true
     }.getOrElse { it.printStackTrace(); false }
@@ -683,7 +460,6 @@ object LocalReportGenerator {
     ): Boolean = runCatching {
         val locale = Locale.getDefault()
         val dfD = dateOnlyFormat(locale)
-        val dfT = SimpleDateFormat("HH:mm", locale)
         val writer = XlsxWriter()
         writer.newSheet("Transactions")
         writer.addMetaRow("Currency", currencyCode)
@@ -694,36 +470,7 @@ object LocalReportGenerator {
         writer.addMetaRow("Net Balance", currencyFmt.format(totalReceived - totalIssued))
         writer.addBlankRow()
 
-        writer.addHeaderRow(listOf("ID", "Person", "Phone", "Type", "Amount", "Currency", "Date", "Time", "Purpose", "Note"))
-        for (tx in transactions) {
-            val p = personsById[tx.personId]
-            val amt = if (tx.type == TransactionType.RECEIVED) XlsxWriter.Cell.positiveNum(tx.amount)
-                      else XlsxWriter.Cell.negativeNum(tx.amount)
-            writer.addRow(
-                listOf(
-                    XlsxWriter.Cell.text(tx.id),
-                    XlsxWriter.Cell.text(p?.name.orEmpty()),
-                    XlsxWriter.Cell.text(p?.phones?.firstOrNull().orEmpty()),
-                    XlsxWriter.Cell.text(tx.type.name),
-                    amt,
-                    XlsxWriter.Cell.text(tx.currency),
-                    XlsxWriter.Cell.text(dfD.format(Date(tx.date))),
-                    XlsxWriter.Cell.text(dfT.format(Date(tx.time))),
-                    XlsxWriter.Cell.text(tx.purpose.orEmpty()),
-                    XlsxWriter.Cell.text(tx.reportNote())
-                )
-            )
-        }
-        if (transactions.isNotEmpty()) {
-            writer.addTotalsRow(
-                listOf(
-                    XlsxWriter.Cell.text("TOTAL (${transactions.size})"),
-                    XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell(),
-                    XlsxWriter.Cell.num(totalReceived - totalIssued),
-                    XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell()
-                )
-            )
-        }
+        writer.addTransactionRows(transactions, personsById)
         writer.writeTo(file)
         true
     }.getOrElse { it.printStackTrace(); false }
@@ -739,76 +486,11 @@ object LocalReportGenerator {
         toDate: Long,
         context: Context
     ): Boolean = runCatching {
-        val locale = Locale.getDefault()
-        val dfD = dateOnlyFormat(locale)
-        val dfDT = dateTimeFormat(locale)
-        writeMultiPagePdf(file, pageWidth = 842, pageHeight = 595) { canvas, pageIndex, pageWidth, pageHeight, stateRef ->
-            val margin = 40f
-            val titlePaint = Paint().apply { typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD); textSize = 22f; color = android.graphics.Color.parseColor("#1F6FEB") }
-            val headerPaint = Paint().apply { typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD); textSize = 12f; color = android.graphics.Color.WHITE }
-            val valuePaint = Paint().apply { typeface = Typeface.SANS_SERIF; textSize = 11f; color = android.graphics.Color.parseColor("#111827") }
-            val metaPaint = Paint(valuePaint).apply { textSize = 12f; color = android.graphics.Color.parseColor("#374151") }
-            val boldMeta = Paint().apply { typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD); textSize = 12f; color = android.graphics.Color.parseColor("#111827") }
-            val smallPaint = Paint(valuePaint).apply { textSize = 10f; color = android.graphics.Color.parseColor("#6B7280") }
-            val greenPaint = Paint(valuePaint).apply { color = android.graphics.Color.parseColor("#059669") }
-            val redPaint = Paint(valuePaint).apply { color = android.graphics.Color.parseColor("#DC2626") }
-
-            var y = margin
-            if (pageIndex == 0) {
-                canvas.drawText("NETIJE — Transactions Journal", margin, y, titlePaint); y += 30
-                canvas.drawText("Generated: ${dfDT.format(Date())}", margin, y, smallPaint); y += 22
-                canvas.drawText("Range:        ${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}", margin, y, metaPaint); y += 18
-                canvas.drawText("Transactions: ${transactions.size}", margin, y, metaPaint); y += 26
-                canvas.drawText("Received:     ${currencyFmt.format(totalReceived)} $currencyCode", margin, y, greenPaint); y += 18
-                canvas.drawText("Issued:       ${currencyFmt.format(totalIssued)} $currencyCode", margin, y, redPaint); y += 18
-                canvas.drawText("Net Balance:  ${currencyFmt.format(totalReceived - totalIssued)} $currencyCode", margin, y, boldMeta); y += 30
-            }
-
-            val contentWidth = pageWidth - 2 * margin
-            val colDate = 0f
-            val colPerson = contentWidth * 0.14f
-            val colType = contentWidth * 0.33f
-            val colAmt = contentWidth * 0.42f
-            val colPurpose = contentWidth * 0.56f
-            val colNote = contentWidth * 0.80f
-
-            val headerBg = android.graphics.Paint().apply { color = android.graphics.Color.parseColor("#1F6FEB") }
-            canvas.drawRect(margin + colDate, y, margin + contentWidth, y + 22, headerBg)
-            y += 16
-            canvas.drawText("Date", margin + colDate + 6, y, headerPaint)
-            canvas.drawText("Person", margin + colPerson + 6, y, headerPaint)
-            canvas.drawText("Type", margin + colType + 6, y, headerPaint)
-            canvas.drawText("Amount", margin + colAmt + 6, y, headerPaint)
-            canvas.drawText("Purpose", margin + colPurpose + 6, y, headerPaint)
-            canvas.drawText("Note", margin + colNote + 6, y, headerPaint)
-            y += 12
-            val border = android.graphics.Paint().apply { color = android.graphics.Color.parseColor("#E5E7EB"); style = Paint.Style.STROKE; strokeWidth = 0.5f }
-
-            var startIdx = stateRef.get() as? Int ?: 0
-            for (i in startIdx until transactions.size) {
-                val tx = transactions[i]
-                val rowTop = y
-                val rowH = 22f
-                if (i % 2 == 0) {
-                    val bg = android.graphics.Paint().apply { color = android.graphics.Color.parseColor("#F9FAFB") }
-                    canvas.drawRect(margin, rowTop, margin + contentWidth, rowTop + rowH, bg)
-                }
-                canvas.drawLine(margin, rowTop, margin + contentWidth, rowTop, border)
-                val p = personsById[tx.personId]
-                canvas.drawText(dfD.format(Date(tx.date)), margin + colDate + 6, rowTop + 15f, valuePaint)
-                canvas.drawText(p?.name.orEmpty(), margin + colPerson + 6, rowTop + 15f, valuePaint)
-                canvas.drawText(tx.type.name, margin + colType + 6, rowTop + 15f, if (tx.type == TransactionType.RECEIVED) greenPaint else redPaint)
-                canvas.drawText("${currencyFmt.format(tx.amount)} $currencyCode", margin + colAmt + 6, rowTop + 15f, valuePaint)
-                val purposeText = if (tx.purpose.isNullOrBlank()) "—" else tx.purpose
-                drawClipped(canvas, purposeText, margin + colPurpose + 6, rowTop + 15f, colNote - colPurpose - 12, valuePaint)
-                val noteText = if (tx.note.isNullOrBlank()) "—" else tx.note
-                drawClipped(canvas, noteText, margin + colNote + 6, rowTop + 15f, contentWidth - colNote - 12, valuePaint)
-                y += rowH
-                startIdx = i + 1
-                if (y > pageHeight - margin - 30) break
-            }
-            stateRef.set(startIdx)
-            transactions.size - startIdx
+        ReportPdfWriter().use { pdf ->
+            pdf.heading("NETIJE - ${context.getString(R.string.report_transactions_title)}")
+            pdf.reportHeader(fromDate, toDate, currencyCode, FinanceSummary(totalReceived, totalIssued), context)
+            pdf.transactionTable(transactions, personsById, context)
+            pdf.writeTo(file)
         }
         true
     }.getOrElse { it.printStackTrace(); false }
@@ -817,74 +499,72 @@ object LocalReportGenerator {
     //  HELPERS
     // ─────────────────────────────────────────────────────────────────────
 
-    private fun writeMultiPagePdf(
-        file: File,
-        pageWidth: Int,
-        pageHeight: Int,
-        drawPage: (Canvas, pageIndex: Int, pageWidth: Int, pageHeight: Int, stateRef: PageState) -> Int
-    ) {
-        val doc = PdfDocument()
-        val stateRef = PageState()
-        stateRef.set(0)
-        var pageIndex = 0
-        do {
-            val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageIndex + 1).create()
-            val page = doc.startPage(pageInfo)
-            val remaining = drawPage(page.canvas, pageIndex, pageWidth, pageHeight, stateRef)
-            doc.finishPage(page)
-            pageIndex++
-        } while (remaining > 0 && pageIndex < 1000)
-        FileOutputStream(file).use { doc.writeTo(it) }
-        doc.close()
-    }
-
-    class PageState {
-        private var value: Any? = null
-        fun set(v: Any?) { value = v }
-        fun get(): Any? = value
-    }
-
-    private fun drawWrappedText(
-        canvas: Canvas,
-        text: String,
-        x: Float,
-        y: Float,
-        maxWidth: Float,
-        paint: Paint
-    ) {
-        if (maxWidth <= 0) return
-        val layout = android.text.StaticLayout.Builder
-            .obtain(text, 0, text.length, android.text.TextPaint(paint), maxWidth.toInt())
-            .setAlignment(android.text.Layout.Alignment.ALIGN_NORMAL)
-            .setLineSpacing(0f, 1f)
-            .setIncludePad(false)
-            .build()
-        canvas.save()
-        canvas.translate(x, y - paint.textSize)
-        layout.draw(canvas)
-        canvas.restore()
-    }
-
-    private fun drawClipped(
-        canvas: Canvas,
-        text: String,
-        x: Float,
-        y: Float,
-        maxWidth: Float,
-        paint: Paint
-    ) {
-        if (maxWidth <= 0f) return
-        val measured = paint.measureText(text)
-        if (measured <= maxWidth) {
-            canvas.drawText(text, x, y, paint)
-            return
+    private fun XlsxWriter.addTransactionRows(transactions: List<Transaction>, personsById: Map<String, Person>) {
+        val dfD = dateOnlyFormat(Locale.getDefault())
+        val dfT = SimpleDateFormat("HH:mm", Locale.getDefault())
+        addHeaderRow(listOf("ID", "Person", "Phone", "Type", "Amount", "Currency", "Date", "Time", "Purpose", "Note"))
+        for (tx in transactions) {
+            val p = personsById[tx.personId]
+            val amt = if (tx.type == TransactionType.RECEIVED) XlsxWriter.Cell.positiveNum(tx.amount)
+                      else XlsxWriter.Cell.negativeNum(tx.amount)
+            addRow(
+                listOf(
+                    XlsxWriter.Cell.text(tx.id),
+                    XlsxWriter.Cell.text(p?.name.orEmpty()),
+                    XlsxWriter.Cell.text(p?.phones?.firstOrNull().orEmpty()),
+                    XlsxWriter.Cell.text(tx.type.name),
+                    amt,
+                    XlsxWriter.Cell.text(tx.currency),
+                    XlsxWriter.Cell.text(dfD.format(Date(tx.date))),
+                    XlsxWriter.Cell.text(dfT.format(Date(tx.time))),
+                    XlsxWriter.Cell.text(tx.purpose.orEmpty()),
+                    XlsxWriter.Cell.text(tx.reportNote())
+                )
+            )
         }
-        var t = text
-        val ellipsis = "…"
-        while (t.isNotEmpty() && paint.measureText(t + ellipsis) > maxWidth) {
-            t = t.dropLast(1)
+        if (transactions.isNotEmpty()) {
+            addTotalsRow(
+                listOf(
+                    XlsxWriter.Cell.text("TOTAL (${transactions.size})"),
+                    XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell(),
+                    XlsxWriter.Cell.num(transactions.sumOf { if (it.type == TransactionType.RECEIVED) it.amount else -it.amount }),
+                    XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell()
+                )
+            )
         }
-        canvas.drawText(t + ellipsis, x, y, paint)
+    }
+
+    private fun ReportPdfWriter.reportHeader(
+        from: Long, to: Long, currency: String, total: FinanceSummary, context: Context
+    ) {
+        val date = dateOnlyFormat(Locale.getDefault())
+        paragraph("${context.getString(R.string.report_date_from, date.format(Date(from)))} - " +
+            context.getString(R.string.report_date_to, date.format(Date(to))))
+        paragraph("${context.getString(R.string.tx_received)}: ${currencyFmt.format(total.totalReceived)} $currency   " +
+            "${context.getString(R.string.tx_issued)}: ${currencyFmt.format(total.totalIssued)} $currency   " +
+            "${context.getString(R.string.summary_balance)}: ${currencyFmt.format(total.balance)} $currency")
+    }
+
+    private fun ReportPdfWriter.transactionTable(
+        transactions: List<Transaction>, people: Map<String, Person>, context: Context
+    ) {
+        val date = dateOnlyFormat(Locale.getDefault())
+        val time = SimpleDateFormat("HH:mm", Locale.getDefault())
+        table(
+            listOf(context.getString(R.string.tx_date),
+                context.getString(R.string.person_name),
+                context.getString(R.string.transaction_detail_type).trimEnd(':'),
+                context.getString(R.string.tx_amount),
+                context.getString(R.string.tx_purpose),
+                context.getString(R.string.tx_note)),
+            listOf(1.2f, 1.4f, 1f, 1.3f, 2f, 2.5f),
+            transactions.sortedWith(compareBy<Transaction> { it.date }.thenBy { it.time }.thenBy { it.id }).map { tx ->
+                listOf("${date.format(Date(tx.date))}\n${time.format(Date(tx.time))}",
+                    people[tx.personId]?.name.orEmpty(),
+                    context.getString(if (tx.type == TransactionType.RECEIVED) R.string.tx_received else R.string.tx_issued),
+                    "${currencyFmt.format(tx.amount)} ${tx.currency}", tx.purpose.orEmpty(), tx.reportNote())
+            }
+        )
     }
 
     fun createOutputFile(

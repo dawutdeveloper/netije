@@ -168,7 +168,7 @@ fun PersonDetailScreen(
                 FloatingActionButton(
                     onClick = { nav.navigate(Routes.newTransaction(person.id)) },
                     containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.White,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = RoundedCornerShape(24.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_transaction_accessibility), modifier = Modifier.size(28.dp))

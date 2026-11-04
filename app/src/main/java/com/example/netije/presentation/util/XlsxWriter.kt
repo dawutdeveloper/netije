@@ -195,7 +195,7 @@ internal class XlsxWriter {
           <sheets>
             ${sheets.mapIndexed { i, s ->
                 val id = i + 1
-                val nameXml = s.name.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                val nameXml = s.name.xmlEscape()
                 """<sheet name="$nameXml" sheetId="$id" r:id="rId$id"/>"""
             }.joinToString("")}
           </sheets>
@@ -220,7 +220,8 @@ internal class XlsxWriter {
     private fun sharedStringsXml(): String = buildStringWriter { w ->
         val strings = collectSharedStrings()
         w.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n")
-        w.append("<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"${strings.size}\" uniqueCount=\"${strings.size}\">")
+        val count = sheets.sumOf { sheet -> sheet.rows.sumOf { row -> row.cells.count { it.kind == Kind.TEXT } } }
+        w.append("<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"$count\" uniqueCount=\"${strings.size}\">")
         for (s in strings) {
             w.append("<si><t xml:space=\"preserve\">")
             w.append(s.xmlEscape())
@@ -280,9 +281,11 @@ internal class XlsxWriter {
                7=META plain text
            -->
           <cellXfs count="8">
-            <xf numFmtId="0"    fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>
+            <xf numFmtId="0"    fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1">
+              <alignment vertical="top" wrapText="1"/>
+            </xf>
             <xf numFmtId="0"    fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1">
-              <alignment horizontal="center" vertical="center"/>
+              <alignment horizontal="center" vertical="center" wrapText="1"/>
             </xf>
             <xf numFmtId="164"  fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/>
             <xf numFmtId="164"  fontId="0" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1"/>
@@ -305,6 +308,13 @@ internal class XlsxWriter {
         w.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n")
         w.append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">")
 
+        // SpreadsheetML requires dimension before cols and sheetData. Some readers
+        // stop at an out-of-order dimension and display an empty worksheet.
+        val lastRow = sheet.rows.size
+        val lastCol = sheet.rows.maxOfOrNull { it.cells.size } ?: 0
+        val dimRef = if (lastRow == 0 || lastCol == 0) "A1" else "A1:${columnLetter(lastCol - 1)}$lastRow"
+        w.append("<dimension ref=\"$dimRef\"/>")
+
         // approximate column widths (first 10 cols = 15 chars default)
         w.append("<cols>")
         val maxCols = sheet.rows.maxOfOrNull { it.cells.size } ?: 0
@@ -313,7 +323,8 @@ internal class XlsxWriter {
                 0 -> 32.0   // Person/ID col wide
                 1 -> 20.0   // phone
                 4, 5 -> 16.0   // date/time
-                3, 6, 7 -> 18.0
+                8, 9 -> 40.0 // Purpose and note in transaction journals.
+                3, 6, 7 -> 24.0
                 else -> 14.0
             }
             w.append("<col min=\"${c + 1}\" max=\"${c + 1}\" width=\"$wd\" customWidth=\"1\"/>")
@@ -346,11 +357,6 @@ internal class XlsxWriter {
         }
         w.append("</sheetData>")
 
-        // Auto sheet dimension for sanity
-        val lastRow = sheet.rows.size
-        val lastCol = sheet.rows.maxOfOrNull { it.cells.size } ?: 0
-        val dimRef = if (lastRow == 0) "A1" else "A1:${columnLetter(lastCol - 1)}$lastRow"
-        w.append("<dimension ref=\"$dimRef\"/>")
         w.append("</worksheet>\n")
     }
 

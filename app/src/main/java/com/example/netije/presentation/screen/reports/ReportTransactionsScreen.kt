@@ -64,7 +64,6 @@ import com.example.netije.presentation.util.ReportFormat
 import com.example.netije.presentation.viewmodel.ReportTransactionsViewModel
 import com.example.netije.ui.theme.NegativeRed
 import com.example.netije.ui.theme.PositiveGreen
-import com.example.netije.ui.theme.PrimaryBlue
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -121,8 +120,8 @@ fun ReportTransactionsScreen(
             Box {
                 ExtendedFloatingActionButton(
                     onClick = { showExport = true },
-                    containerColor = PrimaryBlue,
-                    contentColor = Color.White,
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                     shape = RoundedCornerShape(20.dp),
                     icon = { Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(22.dp)) },
                     text = { Text(stringResource(R.string.export), fontWeight = FontWeight.SemiBold) }

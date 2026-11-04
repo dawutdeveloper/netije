@@ -14,7 +14,6 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.netije.presentation.navigation.BottomNavItem
-import com.example.netije.ui.theme.PrimaryBlue
 
 @Composable
 fun NetijeBottomBar(
@@ -48,22 +47,22 @@ fun NetijeBottomBar(
                     Icon(
                         imageVector = if (selected) item.iconFilled else item.iconOutlined,
                         contentDescription = stringResource(item.labelRes),
-                        tint = if (selected) PrimaryBlue else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (selected) androidx.compose.material3.MaterialTheme.colorScheme.primary else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 label = {
                     Text(
                         text = stringResource(item.labelRes),
-                        color = if (selected) PrimaryBlue else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (selected) androidx.compose.material3.MaterialTheme.colorScheme.primary else androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                         style = androidx.compose.material3.MaterialTheme.typography.labelSmall
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = PrimaryBlue.copy(alpha = 0.14f),
-                    selectedIconColor = PrimaryBlue,
-                    selectedTextColor = PrimaryBlue,
+                    indicatorColor = androidx.compose.material3.MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                    selectedIconColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                    selectedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.primary,
                     unselectedIconColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                     unselectedTextColor = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant
                 )

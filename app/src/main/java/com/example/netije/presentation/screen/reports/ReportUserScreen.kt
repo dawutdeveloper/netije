@@ -65,7 +65,6 @@ import com.example.netije.presentation.util.ReportFormat
 import com.example.netije.presentation.viewmodel.ReportUserViewModel
 import com.example.netije.ui.theme.NegativeRed
 import com.example.netije.ui.theme.PositiveGreen
-import com.example.netije.ui.theme.PrimaryBlue
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -143,8 +142,8 @@ fun ReportUserScreen(
             Box {
                 ExtendedFloatingActionButton(
                     onClick = { if (canExport) showExport = true },
-                    containerColor = if (canExport) PrimaryBlue else MaterialTheme.colorScheme.outlineVariant,
-                    contentColor = Color.White,
+                    containerColor = if (canExport) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                    contentColor = if (canExport) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                     shape = RoundedCornerShape(20.dp),
                     icon = {
                         Icon(

@@ -154,7 +154,8 @@ data class ReportSummaryRow(
     val count: Int,
     val received: Double,
     val issued: Double,
-    val balance: Double
+    val balance: Double,
+    val transactions: List<Transaction> = emptyList()
 )
 
 data class DayTransactions(

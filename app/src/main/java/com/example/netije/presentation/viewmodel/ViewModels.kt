@@ -692,7 +692,7 @@ class ReportSummaryViewModel @Inject constructor(
                     val txsFor = txs.filter { it.personId == pwt.person.id }
                     val recv = txsFor.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
                     val iss = txsFor.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
-                    ReportSummaryRow(pwt.person, txsFor.size, recv, iss, recv - iss)
+                    ReportSummaryRow(pwt.person, txsFor.size, recv, iss, recv - iss, transactions = txsFor)
                 }
                 ReportSummaryState(
                     rows = summaryRows,
