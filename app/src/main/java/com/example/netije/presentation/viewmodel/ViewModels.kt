@@ -46,6 +46,7 @@ import com.example.netije.domain.usecase.SetPersonStatusUseCase
 import com.example.netije.domain.usecase.MarkBackupTakenUseCase
 import com.example.netije.domain.usecase.SignInWithGoogleUseCase
 import com.example.netije.domain.usecase.SignOutUseCase
+import com.example.netije.presentation.util.wrapWithLocale
 import com.example.netije.presentation.util.LocalReportGenerator
 import com.example.netije.presentation.util.ReportExportHelper
 import com.example.netije.presentation.util.ReportFormat
@@ -566,7 +567,8 @@ class TransactionDetailViewModel @Inject constructor(
             ?: return@withContext null to null
         val person = state.value.person
         val baseName = "transaction_${tx.id.take(8)}"
-        val file = LocalReportGenerator.createOutputFile(ctx, baseName, format)
+        val exportContext = ctx.wrapWithLocale(com.example.netije.domain.model.AppLanguage.fromCode(java.util.Locale.getDefault().language))
+        val file = LocalReportGenerator.createOutputFile(exportContext, baseName, format)
         val entries = listOf(tx) + state.value.subTransactions
         val received = entries.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
         val issued = entries.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
@@ -574,13 +576,13 @@ class TransactionDetailViewModel @Inject constructor(
         val from = entries.minOf { it.date }
         val to = entries.maxOf { it.date }
         val success: Boolean = if (entries.size == 1) when (format) {
-            ReportFormat.CSV -> LocalReportGenerator.writeTransactionCsv(file, tx, person)
-            ReportFormat.XLSX -> LocalReportGenerator.writeTransactionXlsx(file, tx, person)
-            ReportFormat.PDF -> LocalReportGenerator.writeTransactionPdf(file, tx, person, ctx)
+            ReportFormat.CSV -> LocalReportGenerator.writeTransactionCsv(file, tx, person, exportContext)
+            ReportFormat.XLSX -> LocalReportGenerator.writeTransactionXlsx(file, tx, person, exportContext)
+            ReportFormat.PDF -> LocalReportGenerator.writeTransactionPdf(file, tx, person, exportContext)
         } else when (format) {
-            ReportFormat.CSV -> LocalReportGenerator.writeTransactionsCsv(file, entries, people, "TMT", received, issued, from, to)
-            ReportFormat.XLSX -> LocalReportGenerator.writeTransactionsXlsx(file, entries, people, "TMT", received, issued, from, to)
-            ReportFormat.PDF -> LocalReportGenerator.writeTransactionsPdf(file, entries, people, "TMT", received, issued, from, to, ctx)
+            ReportFormat.CSV -> LocalReportGenerator.writeTransactionsCsv(file, entries, people, "TMT", received, issued, from, to, exportContext)
+            ReportFormat.XLSX -> LocalReportGenerator.writeTransactionsXlsx(file, entries, people, "TMT", received, issued, from, to, exportContext)
+            ReportFormat.PDF -> LocalReportGenerator.writeTransactionsPdf(file, entries, people, "TMT", received, issued, from, to, exportContext)
         }
         return@withContext if (success && file.exists() && file.length() > 0L) {
             file to format
@@ -651,20 +653,21 @@ class ReportUserViewModel @Inject constructor(
         val pwt = com.example.netije.domain.model.PersonWithTransactions(person, list)
         val personName = person.name.filter { it.isLetterOrDigit() }.ifBlank { "user" }
         viewModelScope.launch(Dispatchers.IO) {
-            val file = LocalReportGenerator.createOutputFile(ctx, "report_${personName}", format)
+            val exportContext = ctx.wrapWithLocale(com.example.netije.domain.model.AppLanguage.fromCode(java.util.Locale.getDefault().language))
+            val file = LocalReportGenerator.createOutputFile(exportContext, "report_${personName}", format)
             val ok = when (format) {
                 ReportFormat.CSV -> LocalReportGenerator.writePersonReportCsv(
-                    file, pwt, list, currencyCode, current.fromDate, current.toDate
+                    file, pwt, list, currencyCode, current.fromDate, current.toDate, exportContext
                 )
                 ReportFormat.XLSX -> LocalReportGenerator.writePersonReportXlsx(
-                    file, pwt, list, currencyCode, current.fromDate, current.toDate
+                    file, pwt, list, currencyCode, current.fromDate, current.toDate, exportContext
                 )
                 ReportFormat.PDF -> LocalReportGenerator.writePersonReportPdf(
-                    file, pwt, list, currencyCode, current.fromDate, current.toDate, ctx
+                    file, pwt, list, currencyCode, current.fromDate, current.toDate, exportContext
                 )
             }
             if (ok && file.exists() && file.length() > 0L) {
-                withContext(Dispatchers.Main) { ReportExportHelper.shareFile(ctx, file, format) }
+                withContext(Dispatchers.Main) { ReportExportHelper.shareFile(exportContext, file, format) }
             } else {
                 runCatching { file.delete() }
             }
@@ -736,20 +739,21 @@ class ReportSummaryViewModel @Inject constructor(
         val total = FinanceSummary(current.totalReceived, current.totalIssued)
         val rows = current.rows
         viewModelScope.launch(Dispatchers.IO) {
-            val file = LocalReportGenerator.createOutputFile(ctx, "summary_report", format)
+            val exportContext = ctx.wrapWithLocale(com.example.netije.domain.model.AppLanguage.fromCode(java.util.Locale.getDefault().language))
+            val file = LocalReportGenerator.createOutputFile(exportContext, "summary_report", format)
             val ok = when (format) {
                 ReportFormat.CSV -> LocalReportGenerator.writeSummaryCsv(
-                    file, rows, total, currencyCode, f, t
+                    file, rows, total, currencyCode, f, t, exportContext
                 )
                 ReportFormat.XLSX -> LocalReportGenerator.writeSummaryXlsx(
-                    file, rows, total, currencyCode, f, t
+                    file, rows, total, currencyCode, f, t, exportContext
                 )
                 ReportFormat.PDF -> LocalReportGenerator.writeSummaryPdf(
-                    file, rows, total, currencyCode, f, t, ctx
+                    file, rows, total, currencyCode, f, t, exportContext
                 )
             }
             if (ok && file.exists() && file.length() > 0L) {
-                withContext(Dispatchers.Main) { ReportExportHelper.shareFile(ctx, file, format) }
+                withContext(Dispatchers.Main) { ReportExportHelper.shareFile(exportContext, file, format) }
             } else {
                 runCatching { file.delete() }
             }
@@ -845,23 +849,24 @@ class ReportTransactionsViewModel @Inject constructor(
         val txs = current.transactions
         val personsById = persons.value.associate { it.person.id to it.person }
         viewModelScope.launch(Dispatchers.IO) {
-            val file = LocalReportGenerator.createOutputFile(ctx, "transactions_report", format)
+            val exportContext = ctx.wrapWithLocale(com.example.netije.domain.model.AppLanguage.fromCode(java.util.Locale.getDefault().language))
+            val file = LocalReportGenerator.createOutputFile(exportContext, "transactions_report", format)
             val ok = when (format) {
                 ReportFormat.CSV -> LocalReportGenerator.writeTransactionsCsv(
                     file, txs, personsById, currencyCode,
-                    current.received, current.issued, f, t
+                    current.received, current.issued, f, t, exportContext
                 )
                 ReportFormat.XLSX -> LocalReportGenerator.writeTransactionsXlsx(
                     file, txs, personsById, currencyCode,
-                    current.received, current.issued, f, t
+                    current.received, current.issued, f, t, exportContext
                 )
                 ReportFormat.PDF -> LocalReportGenerator.writeTransactionsPdf(
                     file, txs, personsById, currencyCode,
-                    current.received, current.issued, f, t, ctx
+                    current.received, current.issued, f, t, exportContext
                 )
             }
             if (ok && file.exists() && file.length() > 0L) {
-                withContext(Dispatchers.Main) { ReportExportHelper.shareFile(ctx, file, format) }
+                withContext(Dispatchers.Main) { ReportExportHelper.shareFile(exportContext, file, format) }
             } else {
                 runCatching { file.delete() }
             }

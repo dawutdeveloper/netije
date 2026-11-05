@@ -301,7 +301,7 @@ private fun ErrorDisplayScreen(
             ) {
                 item {
                     Text(
-                        text = error.title,
+                        text = androidx.compose.ui.res.stringResource(R.string.error_title),
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.error
@@ -309,14 +309,14 @@ private fun ErrorDisplayScreen(
                 }
                 item {
                     Text(
-                        text = "Type: ${error.type}",
+                        text = androidx.compose.ui.res.stringResource(R.string.error_type, error.type),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
                 item {
                     Text(
-                        text = "Message: ${error.message}",
+                        text = androidx.compose.ui.res.stringResource(R.string.error_message, error.message),
                         fontSize = 13.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -343,12 +343,12 @@ private fun ErrorDisplayScreen(
                         onClick = onRetry,
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        Text("Retry", fontWeight = FontWeight.SemiBold)
+                        Text(androidx.compose.ui.res.stringResource(R.string.retry), fontWeight = FontWeight.SemiBold)
                     }
                 }
                 item {
                     Text(
-                        text = "Tip: Long-press to copy these lines, or take a screenshot to report the bug.",
+                        text = androidx.compose.ui.res.stringResource(R.string.error_report_hint),
                         fontSize = 10.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

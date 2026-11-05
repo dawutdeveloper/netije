@@ -21,7 +21,8 @@ class LocalizedLabelsTest {
         val labels = mapOf(
             "en" to listOf("Active", "Archive", "Settled"),
             "ru" to listOf("Активный", "Архив", "Погашен"),
-            "tk" to listOf("Işjeň", "Arhiwlenen", "Hasaplaşylan")
+            "tk" to listOf("Işjeň", "Arhiwlenen", "Hasaplaşylan"),
+            "tr" to listOf("Aktif", "Arşiv", "Hesaplaşıldı")
         )
         labels.forEach { (language, expected) ->
             val resources = resources(language)

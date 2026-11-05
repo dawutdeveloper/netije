@@ -36,10 +36,54 @@ sealed interface ReportExportResult {
     data class Failure(val error: Throwable) : ReportExportResult
 }
 
-private fun Transaction.reportNote(): String = listOfNotNull(
-    parentTransactionId?.let { "Original transaction: $it" }, note,
+private fun Transaction.reportNote(context: Context? = null): String = listOfNotNull(
+    parentTransactionId?.let { "${reportLabel(context, "Original transaction")}: $it" }, note,
     com.example.netije.domain.model.normalizeTransactionTags(tags).takeIf { it.isNotEmpty() }?.joinToString(" ")
 ).joinToString("\n")
+
+// Keep the original labels for callers without Android resources (such as JVM exports).
+// App exports supply a context configured for the selected language.
+private fun reportLabel(context: Context?, fallback: String): String {
+    if (context == null) return fallback
+    val resource = when (fallback) {
+        "Transaction" -> R.string.transaction_detail_title
+        "Person Report" -> R.string.report_user_title
+        "Transactions" -> R.string.transactions_header
+        "Summary" -> R.string.report_summary_title
+        "ID", "id" -> R.string.report_id
+        "Person", "person", "# REPORT FOR" -> R.string.person_title_placeholder
+        "Phone", "phone", "person_phone", "# PHONE" -> R.string.person_phone
+        "Type", "type" -> R.string.transaction_detail_type
+        "Amount", "amount" -> R.string.tx_amount
+        "Currency", "currency", "# CURRENCY" -> R.string.transaction_detail_currency
+        "Date", "date" -> R.string.tx_date
+        "Time", "time" -> R.string.tx_time
+        "Purpose", "purpose" -> R.string.tx_purpose
+        "Note", "note" -> R.string.tx_note
+        "Attachments", "attachments" -> R.string.tx_attachments
+        "attachments_count" -> R.string.report_attachment_count
+        "Range", "# RANGE" -> R.string.report_range
+        "Total Received", "# RECEIVED", "# TOTAL_RECEIVED" -> R.string.summary_received
+        "Received", "received" -> R.string.tx_received
+        "Total Issued", "# ISSUED", "# TOTAL_ISSUED" -> R.string.summary_issued
+        "Issued", "issued" -> R.string.tx_issued
+        "Balance", "Net Balance", "balance", "# BALANCE", "# TOTAL_BALANCE" -> R.string.summary_balance
+        "Persons" -> R.string.report_people
+        "#Tx", "tx_count", "# TX_COUNT" -> R.string.report_transaction_count
+        "TOTALS", "TOTAL" -> R.string.report_total
+        "Original transaction" -> R.string.original_transaction
+        else -> return fallback
+    }
+    return context.getString(resource).trimEnd(':')
+}
+
+private fun reportLabels(context: Context?, vararg labels: String): List<String> =
+    labels.map { reportLabel(context, it) }
+
+private fun Transaction.reportType(context: Context?): String =
+    if (context == null) type.name else context.getString(
+        if (type == TransactionType.RECEIVED) R.string.tx_received else R.string.tx_issued
+    )
 
 object LocalReportGenerator {
 
@@ -50,7 +94,8 @@ object LocalReportGenerator {
     fun writeTransactionCsv(
         file: File,
         tx: Transaction,
-        person: Person?
+        person: Person?,
+        context: Context? = null
     ): Boolean = runCatching {
         val locale = Locale.getDefault()
         val dfD = dateOnlyFormat(locale)
@@ -58,23 +103,22 @@ object LocalReportGenerator {
         file.outputStream().use { fos ->
             fos.write(bomBytes)
             fos.bufferedWriter().use { w ->
-                val header = listOf(
+                val header = reportLabels(context,
                     "id", "person", "person_phone", "type", "amount", "currency",
-                    "date", "time", "purpose", "note", "attachments_count", "attachments"
-                )
+                    "date", "time", "purpose", "note", "attachments_count", "attachments")
                 w.write(header.joinToString(",") { it.csvEscape() })
                 w.newLine()
                 val row = listOf(
                     tx.id,
                     person?.name.orEmpty(),
                     person?.phones?.firstOrNull().orEmpty(),
-                    tx.type.name,
+                    tx.reportType(context),
                     currencyFmt.format(tx.amount),
                     tx.currency,
                     dfD.format(Date(tx.date)),
                     dfT.format(Date(tx.time)),
                     tx.purpose.orEmpty(),
-                    tx.reportNote(),
+                    tx.reportNote(context),
                     tx.attachments.size.toString(),
                     tx.attachments.joinToString("; ")
                 )
@@ -88,14 +132,17 @@ object LocalReportGenerator {
     fun writeTransactionXlsx(
         file: File,
         tx: Transaction,
-        person: Person?
+        person: Person?,
+        context: Context? = null
     ): Boolean = runCatching {
         val locale = Locale.getDefault()
         val dfD = dateOnlyFormat(locale)
         val dfT = SimpleDateFormat("HH:mm", locale)
         val writer = XlsxWriter()
-        writer.newSheet("Transaction")
-        val labels = listOf("ID", "Person", "Phone", "Type", "Amount", "Currency", "Date", "Time", "Purpose", "Note", "Attachments")
+        writer.newSheet(reportLabel(context, "Transaction"))
+        val labels = reportLabels(context,
+            "ID", "Person", "Phone", "Type", "Amount", "Currency",
+            "Date", "Time", "Purpose", "Note", "Attachments")
         writer.addHeaderRow(labels)
         val amtCell = if (tx.type == TransactionType.RECEIVED) XlsxWriter.Cell.positiveNum(tx.amount)
                       else XlsxWriter.Cell.negativeNum(tx.amount)
@@ -104,13 +151,13 @@ object LocalReportGenerator {
                 XlsxWriter.Cell.text(tx.id),
                 XlsxWriter.Cell.text(person?.name.orEmpty()),
                 XlsxWriter.Cell.text(person?.phones?.firstOrNull().orEmpty()),
-                XlsxWriter.Cell.text(tx.type.name),
+                XlsxWriter.Cell.text(tx.reportType(context)),
                 amtCell,
                 XlsxWriter.Cell.text(tx.currency),
                 XlsxWriter.Cell.text(dfD.format(Date(tx.date))),
                 XlsxWriter.Cell.text(dfT.format(Date(tx.time))),
                 XlsxWriter.Cell.text(tx.purpose.orEmpty()),
-                XlsxWriter.Cell.text(tx.reportNote()),
+                XlsxWriter.Cell.text(tx.reportNote(context)),
                 XlsxWriter.Cell.text(tx.attachments.joinToString("; "))
             )
         )
@@ -126,7 +173,7 @@ object LocalReportGenerator {
     ): Boolean = runCatching {
         ReportPdfWriter().use { pdf ->
             pdf.heading("NETIJE - ${context.getString(R.string.transaction_detail_title)}")
-            pdf.paragraph("ID: ${tx.id}")
+            pdf.paragraph("${reportLabel(context, "ID")}: ${tx.id}")
             pdf.paragraph("${context.getString(R.string.person_name)}: ${person?.name.orEmpty()}")
             pdf.transactionTable(listOf(tx), listOfNotNull(person).associateBy { it.id }, context)
             if (tx.attachments.isNotEmpty()) {
@@ -148,7 +195,8 @@ object LocalReportGenerator {
         transactions: List<Transaction>,
         currency: String,
         fromDate: Long,
-        toDate: Long
+        toDate: Long,
+        context: Context? = null
     ): Boolean = runCatching {
         val locale = Locale.getDefault()
         val dfD = dateOnlyFormat(locale)
@@ -159,28 +207,30 @@ object LocalReportGenerator {
                 val recv = transactions.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
                 val iss = transactions.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
                 val bal = recv - iss
-                w.write("# REPORT FOR".csvEscape() + "," + pwt.person.name.csvEscape())
+                w.write(reportLabel(context, "# REPORT FOR").csvEscape() + "," + pwt.person.name.csvEscape())
                 w.newLine()
-                w.write("# PHONE".csvEscape() + "," + (pwt.person.phones.firstOrNull().orEmpty()).csvEscape())
+                w.write(reportLabel(context, "# PHONE").csvEscape() + "," + (pwt.person.phones.firstOrNull().orEmpty()).csvEscape())
                 w.newLine()
-                w.write("# RANGE".csvEscape() + "," + (dfD.format(Date(fromDate)) + " → " + dfD.format(Date(toDate))).csvEscape())
+                w.write(reportLabel(context, "# RANGE").csvEscape() + "," + (dfD.format(Date(fromDate)) + " → " + dfD.format(Date(toDate))).csvEscape())
                 w.newLine()
-                w.write("# RECEIVED".csvEscape() + "," + currencyFmt.format(recv).csvEscape())
+                w.write(reportLabel(context, "# RECEIVED").csvEscape() + "," + currencyFmt.format(recv).csvEscape())
                 w.newLine()
-                w.write("# ISSUED".csvEscape() + "," + currencyFmt.format(iss).csvEscape())
+                w.write(reportLabel(context, "# ISSUED").csvEscape() + "," + currencyFmt.format(iss).csvEscape())
                 w.newLine()
-                w.write("# BALANCE".csvEscape() + "," + currencyFmt.format(bal).csvEscape())
+                w.write(reportLabel(context, "# BALANCE").csvEscape() + "," + currencyFmt.format(bal).csvEscape())
                 w.newLine()
                 w.newLine()
-                val header = listOf("id", "type", "amount", "currency", "date", "time", "purpose", "note")
+                val header = reportLabels(context,
+                    "id", "type", "amount", "currency", "date", "time",
+                    "purpose", "note")
                 w.write(header.joinToString(",") { it.csvEscape() })
                 w.newLine()
                 transactions.forEach { tx ->
                     val row = listOf(
-                        tx.id, tx.type.name,
+                        tx.id, tx.reportType(context),
                         currencyFmt.format(tx.amount), tx.currency,
                         dfD.format(Date(tx.date)), dfT.format(Date(tx.time)),
-                        tx.purpose.orEmpty(), tx.reportNote()
+                        tx.purpose.orEmpty(), tx.reportNote(context)
                     )
                     w.write(row.joinToString(",") { it.csvEscape() })
                     w.newLine()
@@ -196,7 +246,8 @@ object LocalReportGenerator {
         transactions: List<Transaction>,
         currency: String,
         fromDate: Long,
-        toDate: Long
+        toDate: Long,
+        context: Context? = null
     ): Boolean = runCatching {
         val locale = Locale.getDefault()
         val dfD = dateOnlyFormat(locale)
@@ -205,37 +256,39 @@ object LocalReportGenerator {
         val iss = transactions.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
         val bal = recv - iss
         val writer = XlsxWriter()
-        writer.newSheet("Person Report")
-        writer.addMetaRow("Person", pwt.person.name)
-        writer.addMetaRow("Phone", pwt.person.phones.firstOrNull().orEmpty())
-        writer.addMetaRow("Currency", currency)
-        writer.addMetaRow("Range", "${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}")
-        writer.addMetaRow("Total Received", currencyFmt.format(recv))
-        writer.addMetaRow("Total Issued", currencyFmt.format(iss))
-        writer.addMetaRow("Balance", currencyFmt.format(bal))
+        writer.newSheet(reportLabel(context, "Person Report"))
+        writer.addMetaRow(reportLabel(context, "Person"), pwt.person.name)
+        writer.addMetaRow(reportLabel(context, "Phone"), pwt.person.phones.firstOrNull().orEmpty())
+        writer.addMetaRow(reportLabel(context, "Currency"), currency)
+        writer.addMetaRow(reportLabel(context, "Range"), "${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}")
+        writer.addMetaRow(reportLabel(context, "Total Received"), currencyFmt.format(recv))
+        writer.addMetaRow(reportLabel(context, "Total Issued"), currencyFmt.format(iss))
+        writer.addMetaRow(reportLabel(context, "Balance"), currencyFmt.format(bal))
         writer.addBlankRow()
 
-        writer.addHeaderRow(listOf("ID", "Type", "Amount", "Currency", "Date", "Time", "Purpose", "Note"))
+        writer.addHeaderRow(reportLabels(context,
+            "ID", "Type", "Amount", "Currency", "Date", "Time",
+            "Purpose", "Note"))
         for (tx in transactions) {
             val amt = if (tx.type == TransactionType.RECEIVED) XlsxWriter.Cell.positiveNum(tx.amount)
                       else XlsxWriter.Cell.negativeNum(tx.amount)
             writer.addRow(
                 listOf(
                     XlsxWriter.Cell.text(tx.id),
-                    XlsxWriter.Cell.text(tx.type.name),
+                    XlsxWriter.Cell.text(tx.reportType(context)),
                     amt,
                     XlsxWriter.Cell.text(tx.currency),
                     XlsxWriter.Cell.text(dfD.format(Date(tx.date))),
                     XlsxWriter.Cell.text(dfT.format(Date(tx.time))),
                     XlsxWriter.Cell.text(tx.purpose.orEmpty()),
-                    XlsxWriter.Cell.text(tx.reportNote())
+                    XlsxWriter.Cell.text(tx.reportNote(context))
                 )
             )
         }
         if (transactions.isNotEmpty()) {
             writer.addTotalsRow(
                 listOf(
-                    XlsxWriter.Cell.text("TOTAL (${transactions.size})"),
+                    XlsxWriter.Cell.text("${reportLabel(context, "TOTAL")} (${transactions.size})"),
                     XlsxWriter.Cell(),
                     XlsxWriter.Cell.num(bal),
                     XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell()
@@ -277,25 +330,26 @@ object LocalReportGenerator {
         total: FinanceSummary,
         currencyCode: String,
         fromDate: Long,
-        toDate: Long
+        toDate: Long,
+        context: Context? = null
     ): Boolean = runCatching {
         val locale = Locale.getDefault()
         val dfD = dateOnlyFormat(locale)
         file.outputStream().use { fos ->
             fos.write(bomBytes)
             fos.bufferedWriter().use { w ->
-                w.write("# RANGE".csvEscape() + "," + (dfD.format(Date(fromDate)) + " → " + dfD.format(Date(toDate))).csvEscape())
+                w.write(reportLabel(context, "# RANGE").csvEscape() + "," + (dfD.format(Date(fromDate)) + " → " + dfD.format(Date(toDate))).csvEscape())
                 w.newLine()
-                w.write("# CURRENCY".csvEscape() + "," + currencyCode.csvEscape())
+                w.write(reportLabel(context, "# CURRENCY").csvEscape() + "," + currencyCode.csvEscape())
                 w.newLine()
-                w.write("# TOTAL_RECEIVED".csvEscape() + "," + currencyFmt.format(total.totalReceived).csvEscape())
+                w.write(reportLabel(context, "# TOTAL_RECEIVED").csvEscape() + "," + currencyFmt.format(total.totalReceived).csvEscape())
                 w.newLine()
-                w.write("# TOTAL_ISSUED".csvEscape() + "," + currencyFmt.format(total.totalIssued).csvEscape())
+                w.write(reportLabel(context, "# TOTAL_ISSUED").csvEscape() + "," + currencyFmt.format(total.totalIssued).csvEscape())
                 w.newLine()
-                w.write("# TOTAL_BALANCE".csvEscape() + "," + currencyFmt.format(total.totalReceived - total.totalIssued).csvEscape())
+                w.write(reportLabel(context, "# TOTAL_BALANCE").csvEscape() + "," + currencyFmt.format(total.totalReceived - total.totalIssued).csvEscape())
                 w.newLine()
                 w.newLine()
-                val header = listOf("person", "phone", "tx_count", "received", "issued", "balance")
+                val header = reportLabels(context, "person", "phone", "tx_count", "received", "issued", "balance")
                 w.write(header.joinToString(",") { it.csvEscape() }); w.newLine()
                 rows.forEach { r ->
                     val row = listOf(
@@ -319,24 +373,25 @@ object LocalReportGenerator {
         total: FinanceSummary,
         currencyCode: String,
         fromDate: Long,
-        toDate: Long
+        toDate: Long,
+        context: Context? = null
     ): Boolean = runCatching {
         val locale = Locale.getDefault()
         val dfD = dateOnlyFormat(locale)
         val writer = XlsxWriter()
         // Open on the actual transactions; keep aggregate totals on a separate tab.
-        writer.newSheet("Transactions")
-        writer.addTransactionRows(rows.flatMap { it.transactions }, rows.associate { it.person.id to it.person })
-        writer.newSheet("Summary")
-        writer.addMetaRow("Currency", currencyCode)
-        writer.addMetaRow("Range", "${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}")
-        writer.addMetaRow("Total Received", currencyFmt.format(total.totalReceived))
-        writer.addMetaRow("Total Issued", currencyFmt.format(total.totalIssued))
-        writer.addMetaRow("Net Balance", currencyFmt.format(total.totalReceived - total.totalIssued))
-        writer.addMetaRow("Persons", rows.size.toString())
+        writer.newSheet(reportLabel(context, "Transactions"))
+        writer.addTransactionRows(rows.flatMap { it.transactions }, rows.associate { it.person.id to it.person }, context)
+        writer.newSheet(reportLabel(context, "Summary"))
+        writer.addMetaRow(reportLabel(context, "Currency"), currencyCode)
+        writer.addMetaRow(reportLabel(context, "Range"), "${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}")
+        writer.addMetaRow(reportLabel(context, "Total Received"), currencyFmt.format(total.totalReceived))
+        writer.addMetaRow(reportLabel(context, "Total Issued"), currencyFmt.format(total.totalIssued))
+        writer.addMetaRow(reportLabel(context, "Net Balance"), currencyFmt.format(total.totalReceived - total.totalIssued))
+        writer.addMetaRow(reportLabel(context, "Persons"), rows.size.toString())
         writer.addBlankRow()
 
-        writer.addHeaderRow(listOf("Person", "Phone", "#Tx", "Received", "Issued", "Balance"))
+        writer.addHeaderRow(reportLabels(context, "Person", "Phone", "#Tx", "Received", "Issued", "Balance"))
         for (row in rows) {
             writer.addRow(
                 listOf(
@@ -351,7 +406,7 @@ object LocalReportGenerator {
         }
         writer.addTotalsRow(
             listOf(
-                XlsxWriter.Cell.text("TOTALS"),
+                XlsxWriter.Cell.text(reportLabel(context, "TOTALS")),
                 XlsxWriter.Cell(),
                 XlsxWriter.Cell.num(rows.sumOf { it.count.toDouble() }),
                 XlsxWriter.Cell.num(total.totalReceived),
@@ -404,7 +459,8 @@ object LocalReportGenerator {
         totalReceived: Double,
         totalIssued: Double,
         fromDate: Long,
-        toDate: Long
+        toDate: Long,
+        context: Context? = null
     ): Boolean = runCatching {
         val locale = Locale.getDefault()
         val dfD = dateOnlyFormat(locale)
@@ -413,20 +469,22 @@ object LocalReportGenerator {
             fos.write(bomBytes)
             fos.bufferedWriter().use { w ->
                 val bal = totalReceived - totalIssued
-                w.write("# RANGE".csvEscape() + "," + ("${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}").csvEscape())
+                w.write(reportLabel(context, "# RANGE").csvEscape() + "," + ("${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}").csvEscape())
                 w.newLine()
-                w.write("# CURRENCY".csvEscape() + "," + currencyCode.csvEscape())
+                w.write(reportLabel(context, "# CURRENCY").csvEscape() + "," + currencyCode.csvEscape())
                 w.newLine()
-                w.write("# TX_COUNT".csvEscape() + "," + transactions.size.toString().csvEscape())
+                w.write(reportLabel(context, "# TX_COUNT").csvEscape() + "," + transactions.size.toString().csvEscape())
                 w.newLine()
-                w.write("# RECEIVED".csvEscape() + "," + currencyFmt.format(totalReceived).csvEscape())
+                w.write(reportLabel(context, "# RECEIVED").csvEscape() + "," + currencyFmt.format(totalReceived).csvEscape())
                 w.newLine()
-                w.write("# ISSUED".csvEscape() + "," + currencyFmt.format(totalIssued).csvEscape())
+                w.write(reportLabel(context, "# ISSUED").csvEscape() + "," + currencyFmt.format(totalIssued).csvEscape())
                 w.newLine()
-                w.write("# BALANCE".csvEscape() + "," + currencyFmt.format(bal).csvEscape())
+                w.write(reportLabel(context, "# BALANCE").csvEscape() + "," + currencyFmt.format(bal).csvEscape())
                 w.newLine()
                 w.newLine()
-                val header = listOf("id", "person", "phone", "type", "amount", "currency", "date", "time", "purpose", "note")
+                val header = reportLabels(context,
+                    "id", "person", "phone", "type", "amount", "currency",
+                    "date", "time", "purpose", "note")
                 w.write(header.joinToString(",") { it.csvEscape() }); w.newLine()
                 transactions.forEach { tx ->
                     val p = personsById[tx.personId]
@@ -434,13 +492,13 @@ object LocalReportGenerator {
                         tx.id,
                         p?.name.orEmpty(),
                         p?.phones?.firstOrNull().orEmpty(),
-                        tx.type.name,
+                        tx.reportType(context),
                         currencyFmt.format(tx.amount),
                         tx.currency,
                         dfD.format(Date(tx.date)),
                         dfT.format(Date(tx.time)),
                         tx.purpose.orEmpty(),
-                        tx.reportNote()
+                        tx.reportNote(context)
                     )
                     w.write(row.joinToString(",") { it.csvEscape() }); w.newLine()
                 }
@@ -457,21 +515,22 @@ object LocalReportGenerator {
         totalReceived: Double,
         totalIssued: Double,
         fromDate: Long,
-        toDate: Long
+        toDate: Long,
+        context: Context? = null
     ): Boolean = runCatching {
         val locale = Locale.getDefault()
         val dfD = dateOnlyFormat(locale)
         val writer = XlsxWriter()
-        writer.newSheet("Transactions")
-        writer.addMetaRow("Currency", currencyCode)
-        writer.addMetaRow("Range", "${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}")
-        writer.addMetaRow("Transactions", transactions.size.toString())
-        writer.addMetaRow("Total Received", currencyFmt.format(totalReceived))
-        writer.addMetaRow("Total Issued", currencyFmt.format(totalIssued))
-        writer.addMetaRow("Net Balance", currencyFmt.format(totalReceived - totalIssued))
+        writer.newSheet(reportLabel(context, "Transactions"))
+        writer.addMetaRow(reportLabel(context, "Currency"), currencyCode)
+        writer.addMetaRow(reportLabel(context, "Range"), "${dfD.format(Date(fromDate))} → ${dfD.format(Date(toDate))}")
+        writer.addMetaRow(reportLabel(context, "Transactions"), transactions.size.toString())
+        writer.addMetaRow(reportLabel(context, "Total Received"), currencyFmt.format(totalReceived))
+        writer.addMetaRow(reportLabel(context, "Total Issued"), currencyFmt.format(totalIssued))
+        writer.addMetaRow(reportLabel(context, "Net Balance"), currencyFmt.format(totalReceived - totalIssued))
         writer.addBlankRow()
 
-        writer.addTransactionRows(transactions, personsById)
+        writer.addTransactionRows(transactions, personsById, context)
         writer.writeTo(file)
         true
     }.getOrElse { it.printStackTrace(); false }
@@ -500,10 +559,12 @@ object LocalReportGenerator {
     //  HELPERS
     // ─────────────────────────────────────────────────────────────────────
 
-    private fun XlsxWriter.addTransactionRows(transactions: List<Transaction>, personsById: Map<String, Person>) {
+    private fun XlsxWriter.addTransactionRows(transactions: List<Transaction>, personsById: Map<String, Person>, context: Context?) {
         val dfD = dateOnlyFormat(Locale.getDefault())
         val dfT = SimpleDateFormat("HH:mm", Locale.getDefault())
-        addHeaderRow(listOf("ID", "Person", "Phone", "Type", "Amount", "Currency", "Date", "Time", "Purpose", "Note"))
+        addHeaderRow(reportLabels(context,
+            "ID", "Person", "Phone", "Type", "Amount", "Currency",
+            "Date", "Time", "Purpose", "Note"))
         for (tx in transactions) {
             val p = personsById[tx.personId]
             val amt = if (tx.type == TransactionType.RECEIVED) XlsxWriter.Cell.positiveNum(tx.amount)
@@ -513,20 +574,20 @@ object LocalReportGenerator {
                     XlsxWriter.Cell.text(tx.id),
                     XlsxWriter.Cell.text(p?.name.orEmpty()),
                     XlsxWriter.Cell.text(p?.phones?.firstOrNull().orEmpty()),
-                    XlsxWriter.Cell.text(tx.type.name),
+                    XlsxWriter.Cell.text(tx.reportType(context)),
                     amt,
                     XlsxWriter.Cell.text(tx.currency),
                     XlsxWriter.Cell.text(dfD.format(Date(tx.date))),
                     XlsxWriter.Cell.text(dfT.format(Date(tx.time))),
                     XlsxWriter.Cell.text(tx.purpose.orEmpty()),
-                    XlsxWriter.Cell.text(tx.reportNote())
+                    XlsxWriter.Cell.text(tx.reportNote(context))
                 )
             )
         }
         if (transactions.isNotEmpty()) {
             addTotalsRow(
                 listOf(
-                    XlsxWriter.Cell.text("TOTAL (${transactions.size})"),
+                    XlsxWriter.Cell.text("${reportLabel(context, "TOTAL")} (${transactions.size})"),
                     XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell(),
                     XlsxWriter.Cell.num(transactions.sumOf { if (it.type == TransactionType.RECEIVED) it.amount else -it.amount }),
                     XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell(), XlsxWriter.Cell()
@@ -563,7 +624,7 @@ object LocalReportGenerator {
                 listOf("${date.format(Date(tx.date))}\n${time.format(Date(tx.time))}",
                     people[tx.personId]?.name.orEmpty(),
                     context.getString(if (tx.type == TransactionType.RECEIVED) R.string.tx_received else R.string.tx_issued),
-                    "${currencyFmt.format(tx.amount)} ${tx.currency}", tx.purpose.orEmpty(), tx.reportNote())
+                    "${currencyFmt.format(tx.amount)} ${tx.currency}", tx.purpose.orEmpty(), tx.reportNote(context))
             }
         )
     }

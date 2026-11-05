@@ -33,7 +33,8 @@ enum class PersonStatus {
 enum class AppLanguage(val code: String, val displayName: String) {
     RU("ru", "Русский"),
     TM("tk", "Türkmençe"),
-    EN("en", "English");
+    EN("en", "English"),
+    TR("tr", "Türkçe");
 
     companion object {
         fun fromCode(code: String?) = entries.firstOrNull { it.code == code } ?: RU

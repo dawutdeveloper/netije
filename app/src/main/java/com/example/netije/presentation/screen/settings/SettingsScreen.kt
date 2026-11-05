@@ -107,6 +107,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
     val state by vm.state.collectAsState()
     val scope = rememberCoroutineScope()
     val ctx = LocalContext.current
+    var showLanguageDialog by remember { mutableStateOf(false) }
 
     val googleSignInLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -341,14 +342,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                                     .fillMaxWidth()
                                     .padding(18.dp)
                                     .clickableNoRipple {
-                                        val cur = state.settings.language
-                                        val next = when (cur) {
-                                            AppLanguage.RU -> AppLanguage.TM
-                                            AppLanguage.TM -> AppLanguage.EN
-                                            AppLanguage.EN -> AppLanguage.RU
-                                            else -> AppLanguage.RU
-                                        }
-                                        vm.onLanguage(next)
+                                        showLanguageDialog = true
                                     },
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -545,6 +539,41 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                     }
                 }
             }
+        }
+
+        if (showLanguageDialog) {
+            AlertDialog(
+                onDismissRequest = { showLanguageDialog = false },
+                title = { Text(stringResource(R.string.settings_language)) },
+                text = {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        AppLanguage.entries.forEach { language ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                                    .clickableNoRipple {
+                                        vm.onLanguage(language)
+                                        showLanguageDialog = false
+                                    },
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = state.settings.language == language,
+                                    onClick = {
+                                        vm.onLanguage(language)
+                                        showLanguageDialog = false
+                                    }
+                                )
+                                Text(language.displayName, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showLanguageDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
+            )
         }
 
         if (showBackupDialog) {

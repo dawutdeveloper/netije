@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_title">Bir sorun oluştu</string>
+    <string name="error_type">Tür: %1$s</string>
+    <string name="error_message">Mesaj: %1$s</string>
+    <string name="retry">Tekrar dene</string>
+    <string name="error_report_hint">Sorunu bildirmek için bu ayrıntıların ekran görüntüsünü alın.</string>
+    <string name="report_id">Kimlik</string>
+    <string name="report_range">Tarih aralığı</string>
+    <string name="report_people">Kişiler</string>
+    <string name="report_transaction_count">İşlem sayısı</string>
+    <string name="report_attachment_count">Ek sayısı</string>
+</resources>

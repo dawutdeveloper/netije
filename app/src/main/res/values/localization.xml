@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_title">Something went wrong</string>
+    <string name="error_type">Type: %1$s</string>
+    <string name="error_message">Message: %1$s</string>
+    <string name="retry">Retry</string>
+    <string name="error_report_hint">Take a screenshot of these details to report the problem.</string>
+    <string name="report_id">ID</string>
+    <string name="report_range">Date range</string>
+    <string name="report_people">People</string>
+    <string name="report_transaction_count">Transaction count</string>
+    <string name="report_attachment_count">Attachment count</string>
+</resources>
