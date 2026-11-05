@@ -13,3 +13,13 @@ local.properties
 *.apk
 *.aab
 app/release/
+
+# Local caches, diagnostics, and signing material (including extensionless keys)
+.kotlin/
+*.log
+/keystore/
+
+# Environment configuration; keep safe examples versioned
+.env
+.env.*
+!.env.example
