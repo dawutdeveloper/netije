@@ -19,7 +19,7 @@ Netije brings people, transactions, and repayment history into one place. Record
 
 ## Screenshots
 
-A focused dark interface for recording transactions, browsing the calendar, and managing local backups.
+A focused dark interface for recording transactions, browsing the calendar, and managing local backups, presented in promotional device mockups.
 
 <table>
   <tr>
@@ -29,13 +29,13 @@ A focused dark interface for recording transactions, browsing the calendar, and 
   </tr>
   <tr>
     <td align="center" valign="top">
-      <a href="docs/screenshots/01-new-entry.jpg"><img src="docs/screenshots/01-new-entry.jpg" width="260" alt="Netije new entry screen in dark mode with received and issued funds, date, purpose, amount, and tags" /></a>
+      <a href="docs/screenshots/01-new-entry.png"><img src="docs/screenshots/01-new-entry.png" width="260" alt="Netije new entry screen in dark mode with received and issued funds, date, purpose, amount, and tags" /></a>
     </td>
     <td align="center" valign="top">
-      <a href="docs/screenshots/02-calendar.jpg"><img src="docs/screenshots/02-calendar.jpg" width="260" alt="Netije November calendar in dark mode with monthly totals, transaction status filters, and a selected day" /></a>
+      <a href="docs/screenshots/02-calendar.png"><img src="docs/screenshots/02-calendar.png" width="260" alt="Netije November calendar in dark mode with monthly totals, transaction status filters, and a selected day" /></a>
     </td>
     <td align="center" valign="top">
-      <a href="docs/screenshots/03-preferences-backup.jpg"><img src="docs/screenshots/03-preferences-backup.jpg" width="260" alt="Netije preferences showing language, theme, backup import and export, saved backups, and automatic backup settings" /></a>
+      <a href="docs/screenshots/03-preferences-backup.png"><img src="docs/screenshots/03-preferences-backup.png" width="260" alt="Netije preferences showing language, theme, backup import and export, saved backups, and automatic backup settings" /></a>
     </td>
   </tr>
   <tr>

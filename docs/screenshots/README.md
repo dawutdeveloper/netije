@@ -1,14 +1,14 @@
 # Screenshot assets
 
-The root [README](../../README.md#screenshots) displays these three original app screenshots in a captioned gallery. Images use repository-relative paths and link to the full-size files.
+The root [README](../../README.md#screenshots) displays three supplied promotional device mockups in a captioned gallery. Images use repository-relative paths and link to the full-size files.
 
 | Asset | Screen |
 | --- | --- |
-| [01-new-entry.jpg](01-new-entry.jpg) | New transaction: direction, date, purpose, amount, and tags. |
-| [02-calendar.jpg](02-calendar.jpg) | Monthly calendar, totals, status filters, and selected day. |
-| [03-preferences-backup.jpg](03-preferences-backup.jpg) | Language, theme, local backup, restore, and scheduling options. |
+| [01-new-entry.png](01-new-entry.png) | New transaction: direction, date, purpose, amount, and tags. |
+| [02-calendar.png](02-calendar.png) | Monthly calendar, totals, status filters, and selected day. |
+| [03-preferences-backup.png](03-preferences-backup.png) | Language, theme, local backup, restore, and scheduling options. |
 
-The supplied JPEG files are preserved without cropping, recompression, or interface changes.
+The supplied PNG files are preserved without cropping, recompression, or additional edits. They replace the earlier unframed JPEG screenshots.
 
 ## Updating the gallery
 
