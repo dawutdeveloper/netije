@@ -17,7 +17,7 @@
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <application
-        android:name=".NetijeApp"
+        android:name=".GaznaApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -25,7 +25,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Netije"
+        android:theme="@style/Theme.Gazna"
         tools:targetApi="33">
 
         <provider
@@ -42,14 +42,22 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.Netije"
+            android:theme="@style/Theme.Gazna"
             android:windowSoftInputMode="adjustResize">
+        </activity>
+
+        <!-- Preserve the launcher component used by existing installations and shortcuts. -->
+        <activity-alias
+            android:name="com.example.netije.MainActivity"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity-alias>
     </application>
 
 </manifest>

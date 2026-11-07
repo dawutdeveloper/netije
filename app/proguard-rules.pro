@@ -1,7 +1,7 @@
 
 # ============================================
 
-# Netije — Android ProGuard / R8 Keep Rules
+# Gazna — Android ProGuard / R8 Keep Rules
 
 # Apply ONLY to release build (minifyEnabled=true)
 
@@ -33,13 +33,13 @@
 -if interface * { @retrofit2.http.* <methods>; }
 -keep,allowobfuscation interface * extends <1>
 -if interface * { @retrofit2.http.* public *** *(...); }
--keep,allowoptimization,allowshrinking,allowobfuscation class com.example.netije.data.remote.dto.** { *; }
+-keep,allowoptimization,allowshrinking,allowobfuscation class com.gazna.data.remote.dto.** { *; }
 
 # Keep Auth/Person/Sync/Transaction DTOs (API models)
--keep class com.example.netije.data.remote.dto.** { <fields>; }
+-keep class com.gazna.data.remote.dto.** { <fields>; }
 
 # Keep Retrofit service interfaces
--keep interface com.example.netije.data.remote.api.** { *; }
+-keep interface com.gazna.data.remote.api.** { *; }
 
 # ---------- 4. Room Database ----------
 -keep class androidx.room.RoomDataClass { *; }
@@ -49,10 +49,10 @@
 -dontwarn androidx.room.paging.**
 
 # Keep Room Entities (local db)
--keep class com.example.netije.data.local.db.**Entity { <fields>; }
+-keep class com.gazna.data.local.db.**Entity { <fields>; }
 
 # ---------- 5. Domain models (used in Room/Room queries + serialization) ----------
--keep class com.example.netije.domain.model.** { <fields>; public <init>(...); }
+-keep class com.gazna.domain.model.** { <fields>; public <init>(...); }
 
 # ---------- 6. Coil (AsyncImage) ----------
 -dontwarn coil.**
@@ -90,6 +90,6 @@
 -keep class android.text.** { *; }
 
 # ---------- 12. Report generator helpers (keep entry points) ----------
--keep class com.example.netije.presentation.util.LocalReportGenerator { *; }
--keep class com.example.netije.presentation.util.ReportExportHelper { *; }
--keep enum com.example.netije.presentation.util.ReportFormat { *; }
+-keep class com.gazna.presentation.util.LocalReportGenerator { *; }
+-keep class com.gazna.presentation.util.ReportExportHelper { *; }
+-keep enum com.gazna.presentation.util.ReportFormat { *; }

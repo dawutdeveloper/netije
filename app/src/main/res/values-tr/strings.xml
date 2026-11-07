@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Netije</string>
+    <string name="app_name">Gazna</string>
     <string name="nav_home">Ana sayfa</string>
     <string name="nav_calendar">Takvim</string>
     <string name="nav_reports">Raporlar</string>
@@ -96,7 +96,7 @@
     <string name="toast_export_success">Rapor kaydedildi</string>
     <string name="toast_export_error">Dışa aktarma hatası</string>
     <string name="toast_share_title">Raporu paylaş</string>
-    <string name="toast_share_subject">Netije raporu</string>
+    <string name="toast_share_subject">Gazna raporu</string>
     <string name="perm_read_contacts_rationale">Borçlu ve alacaklı kişileri hızlıca eklemek için rehbere erişim gereklidir</string>
     <string name="perm_contacts_denied">Rehbere erişim izni verilmedi</string>
     <string name="backup_dialog_title">Otomatik veri yedekleme</string>

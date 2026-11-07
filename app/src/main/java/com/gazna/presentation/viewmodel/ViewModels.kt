@@ -1,0 +1,901 @@
+package com.gazna.presentation.viewmodel
+
+import android.content.Context
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.gazna.data.remote.api.ReportsApi
+import com.gazna.domain.model.FinanceSummary
+import com.gazna.domain.model.PersonStatus
+import com.gazna.domain.model.PersonWithTransactions
+import com.gazna.domain.model.DayTransactions
+import com.gazna.domain.model.Person
+import com.gazna.domain.model.ReportSummaryRow
+import com.gazna.domain.model.Transaction
+import com.gazna.domain.model.matchingTransactionGroups
+import com.gazna.domain.model.matchesSearch
+import com.gazna.domain.model.parseTransactionTags
+import com.gazna.domain.model.parseMoney
+import com.gazna.domain.model.startOfDayMillis
+import com.gazna.domain.model.endOfDayMillis
+import com.gazna.domain.model.TransactionStatus
+import com.gazna.domain.model.TransactionType
+import com.gazna.domain.usecase.DeletePersonUseCase
+import com.gazna.domain.usecase.DeleteTransactionUseCase
+import com.gazna.domain.usecase.ExportBackupUseCase
+import com.gazna.domain.usecase.GetPersonUseCase
+import com.gazna.domain.usecase.GetTransactionUseCase
+import com.gazna.domain.usecase.ImportBackupUseCase
+import com.gazna.domain.usecase.ObserveCurrentUserUseCase
+import com.gazna.domain.usecase.ObserveDaySummaryUseCase
+import com.gazna.domain.usecase.ObserveFinanceSummaryUseCase
+import com.gazna.domain.usecase.ObserveMonthSummaryUseCase
+import com.gazna.domain.usecase.ObservePersonWithTransactionsUseCase
+import com.gazna.domain.usecase.ObservePersonsWithTransactionsUseCase
+import com.gazna.domain.usecase.ObserveSettingsUseCase
+import com.gazna.domain.usecase.ObserveTransactionsByDayUseCase
+import com.gazna.domain.usecase.ObserveTransactionsUseCase
+import com.gazna.domain.usecase.PickContactUseCase
+import com.gazna.domain.usecase.RefreshDataUseCase
+import com.gazna.domain.usecase.SavePersonUseCase
+import com.gazna.domain.usecase.SaveTransactionUseCase
+import com.gazna.domain.usecase.SetBackupFrequencyUseCase
+import com.gazna.domain.usecase.SetCurrencyUseCase
+import com.gazna.domain.usecase.SetDarkModeUseCase
+import com.gazna.domain.usecase.SetLanguageUseCase
+import com.gazna.domain.usecase.SetPersonStatusUseCase
+import com.gazna.domain.usecase.MarkBackupTakenUseCase
+import com.gazna.domain.usecase.SignInWithGoogleUseCase
+import com.gazna.domain.usecase.SignOutUseCase
+import com.gazna.presentation.util.wrapWithLocale
+import com.gazna.presentation.util.LocalReportGenerator
+import com.gazna.presentation.util.ReportExportHelper
+import com.gazna.presentation.util.ReportFormat
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.BufferedWriter
+import java.io.File
+import java.util.Calendar
+import javax.inject.Inject
+
+@HiltViewModel
+class HomeViewModel @Inject constructor(
+    private val observePersons: ObservePersonsWithTransactionsUseCase,
+    observeSummary: ObserveFinanceSummaryUseCase,
+    private val refreshData: com.gazna.domain.usecase.RefreshDataUseCase,
+    private val deletePerson: DeletePersonUseCase
+) : ViewModel() {
+    val search = MutableStateFlow("")
+    val statusFilter = MutableStateFlow<TransactionStatus?>(TransactionStatus.ACTIVE)
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { refreshData() }
+        }
+    }
+
+    fun deletePersonById(id: String) = viewModelScope.launch {
+        runCatching { deletePerson(id) }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val state: StateFlow<HomeState> = combine(
+        search,
+        statusFilter,
+        observeSummary()
+    ) { q, status, sum -> Triple(q, status, sum) }
+        .flatMapLatest { (q, status, sum) ->
+            observePersons(null, null)
+                .combine(flowOf(sum)) { list, s ->
+                    val filtered = list.mapNotNull { pwt ->
+                        pwt.copy(transactions = pwt.transactions.filter { status == null || it.status == status }).matchingTransactionGroups(q)
+                    }
+                    HomeState(q, status, s, filtered)
+                }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState())
+}
+
+data class HomeState(
+    val query: String = "",
+    val status: TransactionStatus? = TransactionStatus.ACTIVE,
+    val summary: FinanceSummary = FinanceSummary(0.0, 0.0),
+    val persons: List<PersonWithTransactions> = emptyList()
+)
+
+@HiltViewModel
+class CalendarViewModel @Inject constructor(
+    observeMonth: ObserveMonthSummaryUseCase,
+    observeByDay: ObserveTransactionsByDayUseCase,
+    private val deletePerson: DeletePersonUseCase
+) : ViewModel() {
+    private val now = Calendar.getInstance()
+    val year = MutableStateFlow(now.get(Calendar.YEAR))
+    val month = MutableStateFlow(now.get(Calendar.MONTH))
+    val selectedDate = MutableStateFlow(System.currentTimeMillis())
+    val statusFilter = MutableStateFlow<TransactionStatus?>(TransactionStatus.ACTIVE)
+
+    fun deletePersonById(id: String) = viewModelScope.launch {
+        runCatching { deletePerson(id) }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val monthSummary: StateFlow<FinanceSummary> = combine(year, month) { y, m -> y to m }
+        .flatMapLatest { (y, m) -> observeMonth(y, m) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), FinanceSummary(0.0, 0.0))
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val dayGroups: StateFlow<List<DayTransactions>> = combine(year, month) { y, m ->
+        val c = Calendar.getInstance()
+        c.clear(); c.set(y, m, 1, 0, 0, 0); val s = c.timeInMillis
+        c.set(y, m + 1, 1, 0, 0, 0); val e = c.timeInMillis - 1
+        s to e
+    }.flatMapLatest { (s, e) -> observeByDay(s, e) }
+        .combine(statusFilter) { groups, status -> groups.map { day ->
+            day.copy(transactions = day.transactions.filter { status == null || it.status == status })
+        }.filter { it.transactions.isNotEmpty() } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun nextMonth() {
+        val curSelCal = Calendar.getInstance().apply { timeInMillis = selectedDate.value }
+        val selDay = curSelCal.get(Calendar.DAY_OF_MONTH)
+        val cal = Calendar.getInstance().apply { set(year.value, month.value, 1) }
+        cal.add(Calendar.MONTH, 1)
+        year.value = cal.get(Calendar.YEAR); month.value = cal.get(Calendar.MONTH)
+        val maxDay = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        val newDay = selDay.coerceAtMost(maxDay)
+        cal.set(Calendar.DAY_OF_MONTH, newDay)
+        selectedDate.value = cal.timeInMillis
+    }
+
+    fun prevMonth() {
+        val curSelCal = Calendar.getInstance().apply { timeInMillis = selectedDate.value }
+        val selDay = curSelCal.get(Calendar.DAY_OF_MONTH)
+        val cal = Calendar.getInstance().apply { set(year.value, month.value, 1) }
+        cal.add(Calendar.MONTH, -1)
+        year.value = cal.get(Calendar.YEAR); month.value = cal.get(Calendar.MONTH)
+        val maxDay = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        val newDay = selDay.coerceAtMost(maxDay)
+        cal.set(Calendar.DAY_OF_MONTH, newDay)
+        selectedDate.value = cal.timeInMillis
+    }
+}
+
+@HiltViewModel
+class NewPersonViewModel @Inject constructor(
+    private val savePerson: com.gazna.domain.usecase.SavePersonUseCase,
+    private val getPerson: com.gazna.domain.usecase.GetPersonUseCase,
+    savedStateHandle: androidx.lifecycle.SavedStateHandle
+) : ViewModel() {
+    val editingPersonId: String? = savedStateHandle.get<String>("personId")?.ifBlank { null }
+    private val draftId = savedStateHandle.get<String>("draftPersonId") ?: java.util.UUID.randomUUID().toString().also { savedStateHandle["draftPersonId"] = it }
+    val saving = MutableStateFlow(false)
+    val ready = MutableStateFlow(false)
+    private var existingCreatedAt = System.currentTimeMillis()
+    val name = MutableStateFlow("")
+    val phones = MutableStateFlow<List<String>>(listOf(""))
+    val emails = MutableStateFlow<List<String>>(listOf(""))
+    val city = MutableStateFlow("")
+    val address = MutableStateFlow("")
+    val isImportant = MutableStateFlow(false)
+    val contactUri = MutableStateFlow<String?>(null)
+    val avatarFromContact = MutableStateFlow<String?>(null)
+    val customAvatarUrl = MutableStateFlow<String?>(null)
+    private val existingStatus = MutableStateFlow<PersonStatus>(PersonStatus.ACTIVE)
+
+    init {
+        viewModelScope.launch {
+            val existing = editingPersonId?.let { getPerson(it) }
+            if (existing != null) {
+                existingCreatedAt = existing.createdAt
+                name.value = existing.name
+                val pl = existing.phones.toMutableList()
+                phones.value = if (pl.isEmpty()) listOf("") else pl
+                val el = existing.emails.toMutableList()
+                emails.value = if (el.isEmpty()) listOf("") else el
+                city.value = existing.city.orEmpty()
+                address.value = existing.address.orEmpty()
+                isImportant.value = existing.isImportant
+                contactUri.value = existing.contactLookupUri
+                avatarFromContact.value = existing.avatarUrl
+                existingStatus.value = existing.status
+            } else {
+                val picked = com.gazna.di.PickedContactHolder.consume()
+                if (picked != null) {
+                    name.value = picked.name
+                    val pl = picked.phones.toMutableList()
+                    phones.value = if (pl.isEmpty()) listOf("") else pl
+                    val el = picked.emails.toMutableList()
+                    emails.value = if (el.isEmpty()) listOf("") else el
+                    contactUri.value = picked.contactLookupUri
+                    avatarFromContact.value = picked.avatarUrl
+                }
+            }
+            ready.value = true
+        }
+    }
+
+    fun addPhone() { phones.value = phones.value + "" }
+    fun addEmail() { emails.value = emails.value + "" }
+    fun removePhone(i: Int) {
+        val cur = phones.value.toMutableList()
+        if (cur.size > 1 && i in cur.indices) {
+            cur.removeAt(i)
+            phones.value = cur
+        }
+    }
+    fun removeEmail(i: Int) {
+        val cur = emails.value.toMutableList()
+        if (cur.size > 1 && i in cur.indices) {
+            cur.removeAt(i)
+            emails.value = cur
+        }
+    }
+    fun updatePhone(i: Int, v: String) {
+        phones.value = phones.value.toMutableList().also { if (i in it.indices) it[i] = v }
+    }
+    fun updateEmail(i: Int, v: String) {
+        emails.value = emails.value.toMutableList().also { if (i in it.indices) it[i] = v }
+    }
+
+    suspend fun save(): String? {
+        val n = name.value.trim()
+        if (n.isBlank() || saving.value || !ready.value) return null
+        saving.value = true
+        try { return savePerson(
+            com.gazna.domain.model.Person(
+                id = editingPersonId ?: draftId,
+                createdAt = existingCreatedAt,
+                name = n,
+                phones = phones.value.map { it.trim() }.filter { it.isNotBlank() },
+                emails = emails.value.map { it.trim() }.filter { it.isNotBlank() },
+                city = city.value.trim().ifBlank { null },
+                address = address.value.trim().ifBlank { null },
+                avatarUrl = customAvatarUrl.value ?: avatarFromContact.value,
+                isImportant = isImportant.value,
+                contactLookupUri = contactUri.value,
+                status = existingStatus.value
+            )
+        ) } finally { saving.value = false }
+    }
+}
+
+@HiltViewModel
+class NewTransactionViewModel @Inject constructor(
+    private val save: com.gazna.domain.usecase.SaveTransactionUseCase,
+    private val getTransaction: com.gazna.domain.usecase.GetTransactionUseCase,
+    private val getPerson: com.gazna.domain.usecase.GetPersonUseCase,
+    observePersons: ObservePersonsWithTransactionsUseCase,
+    observeTransactions: ObserveTransactionsUseCase,
+    savedStateHandle: androidx.lifecycle.SavedStateHandle
+) : ViewModel() {
+    companion object {
+        private const val KEY_ATTACHMENTS = "nt_attachments"
+    }
+    val editingTransactionId: String? =
+        savedStateHandle.get<String>("transactionId")?.ifBlank { null }
+    private val draftId = savedStateHandle.get<String>("draftTransactionId") ?: java.util.UUID.randomUUID().toString().also { savedStateHandle["draftTransactionId"] = it }
+    val addingSubTransaction = MutableStateFlow(false)
+    private var original: Transaction? = null
+    val type = MutableStateFlow(TransactionType.RECEIVED)
+    val date = MutableStateFlow(System.currentTimeMillis())
+    val time = MutableStateFlow(System.currentTimeMillis())
+    val personId = MutableStateFlow<String?>(null)
+    val personName = MutableStateFlow<String?>(null)
+    val purpose = MutableStateFlow("")
+    val amount = MutableStateFlow("")
+    val note = MutableStateFlow("")
+    val tags = MutableStateFlow("")
+    val ready = MutableStateFlow(false)
+    private var saving = false
+    private val persistedAttachments: MutableStateFlow<List<String>> = MutableStateFlow(
+        (savedStateHandle[KEY_ATTACHMENTS] ?: emptyList<String>()).toList()
+    )
+    val attachments: StateFlow<List<String>> = persistedAttachments.asStateFlow()
+
+    val personsList: StateFlow<List<PersonWithTransactions>> = observePersons(null, null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    init {
+        viewModelScope.launch {
+            persistedAttachments.collect { list ->
+                savedStateHandle[KEY_ATTACHMENTS] = ArrayList(list)
+            }
+        }
+        viewModelScope.launch {
+            if (editingTransactionId == null) {
+                savedStateHandle.get<Long>("date")?.takeIf { it > 0 }?.let { date.value = it }
+                savedStateHandle.get<String>("preselectedPersonId")?.takeIf { it.isNotBlank() }?.let { id ->
+                    preselectPerson(id, getPerson(id)?.name)
+                }
+            }
+            if (editingTransactionId == null) ready.value = true
+            val eid = editingTransactionId
+            if (eid != null) {
+                val existing = getTransaction(eid)
+                if (existing != null) {
+                    original = existing
+                    setAddingSubTransaction(existing.parentTransactionId == null)
+                    if (personId.value.isNullOrBlank()) {
+                        val p = getPerson(existing.personId)
+                        personId.value = existing.personId
+                        personName.value = p?.name
+                    }
+                    ready.value = true
+                }
+            }
+        }
+    }
+
+    val canAddSubTransaction: Boolean get() = original != null && original?.parentTransactionId == null
+    val originalTransaction: Transaction? get() = original
+    val currentBalance: StateFlow<Double?> = observeTransactions().map { transactions ->
+        val transaction = transactions.firstOrNull { it.id == editingTransactionId }
+        transaction?.let { original ->
+            com.gazna.domain.model.TransactionGroup(
+                original, transactions.filter { it.parentTransactionId == original.id }
+            ).balance
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    val isEditing: Boolean get() = editingTransactionId != null
+
+    fun preselectPerson(id: String?, name: String?) {
+        personId.value = id; personName.value = name
+    }
+    fun presetDate(d: Long) { date.value = d }
+
+    fun setAddingSubTransaction(enabled: Boolean) {
+        val transaction = original ?: return
+        addingSubTransaction.value = enabled && transaction.parentTransactionId == null
+        val adding = addingSubTransaction.value
+        type.value = if (adding) TransactionType.RECEIVED else transaction.type
+        date.value = if (adding) System.currentTimeMillis() else transaction.date
+        time.value = if (adding) System.currentTimeMillis() else transaction.time
+        amount.value = if (adding) "" else java.text.DecimalFormat("#.########").format(transaction.amount)
+        purpose.value = if (adding) "" else transaction.purpose.orEmpty()
+        note.value = if (adding) "" else transaction.note.orEmpty()
+        tags.value = if (adding) "" else transaction.tags.orEmpty().joinToString(" ")
+        persistedAttachments.value = if (adding) emptyList() else transaction.attachments
+    }
+
+    fun setAmount(newVal: String) {
+        val text = newVal.trimStart()
+        when {
+            text.startsWith("-") -> { type.value = TransactionType.ISSUED; amount.value = text.drop(1) }
+            text.startsWith("+") -> { type.value = TransactionType.RECEIVED; amount.value = text.drop(1) }
+            else -> amount.value = newVal
+        }
+    }
+
+    fun addAttachment(path: String) {
+        persistedAttachments.value = persistedAttachments.value + path
+    }
+    fun removeAttachment(i: Int) {
+        val cur = persistedAttachments.value.toMutableList()
+        if (i in cur.indices) {
+            cur.removeAt(i)
+            persistedAttachments.value = cur
+        }
+    }
+
+    suspend fun save(): String? {
+        if (!ready.value || saving) return null
+        val pid = personId.value ?: return null
+        val amt = parseMoney(amount.value) ?: return null
+        if (pid.isBlank() || amt <= 0.0) return null
+        saving = true
+        try { return save(
+            com.gazna.domain.model.Transaction(
+                id = if (addingSubTransaction.value) draftId else editingTransactionId ?: draftId,
+                parentTransactionId = if (addingSubTransaction.value) editingTransactionId else original?.parentTransactionId,
+                personId = if (addingSubTransaction.value) original!!.personId else pid,
+                type = type.value,
+                amount = amt,
+                currency = "TMT",
+                purpose = purpose.value.trim().ifBlank { null },
+                note = note.value.trim().ifBlank { null },
+                attachments = attachments.value,
+                tags = parseTransactionTags(tags.value),
+                date = date.value,
+                time = time.value
+            )
+        ) } finally { saving = false }
+    }
+}
+
+@HiltViewModel
+class SelectContactViewModel @Inject constructor(
+    observePersons: ObservePersonsWithTransactionsUseCase
+) : ViewModel() {
+    val search = MutableStateFlow("")
+    val statusFilter = MutableStateFlow<PersonStatus?>(null)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val state = combine(search, statusFilter) { q, s -> q to s }
+        .flatMapLatest { (q, s) -> observePersons(null, q.ifBlank { null }) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+}
+
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    observeUser: ObserveCurrentUserUseCase,
+    observeSettings: ObserveSettingsUseCase,
+    private val signIn: SignInWithGoogleUseCase,
+    private val signOut: SignOutUseCase,
+    private val setCurrency: SetCurrencyUseCase,
+    private val setLanguage: SetLanguageUseCase,
+    private val setDarkMode: SetDarkModeUseCase,
+    private val setBackupFrequency: SetBackupFrequencyUseCase,
+    private val markBackupTaken: MarkBackupTakenUseCase,
+    private val exportBackup: ExportBackupUseCase,
+    private val importBackup: ImportBackupUseCase
+) : ViewModel() {
+    val state: StateFlow<SettingsState> = combine(observeUser(), observeSettings()) { user, s ->
+        SettingsState(user = user, settings = s)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SettingsState())
+
+    fun onSignIn(idToken: String) = viewModelScope.launch { signIn(idToken) }
+    fun onSignOut() = viewModelScope.launch { signOut() }
+    fun onCurrency(code: String) = viewModelScope.launch { setCurrency(code) }
+    fun onLanguage(lang: com.gazna.domain.model.AppLanguage) =
+        viewModelScope.launch { setLanguage(lang) }
+    fun onDarkMode(mode: com.gazna.domain.model.DarkModeConfig) =
+        viewModelScope.launch { setDarkMode(mode) }
+    fun onBackupFrequency(
+        number: Int,
+        unit: com.gazna.domain.model.BackupUnit,
+        nextRunAt: Long?
+    ) = viewModelScope.launch { setBackupFrequency(number, unit, nextRunAt) }
+    fun markBackupTakenNow() = viewModelScope.launch { markBackupTaken() }
+    suspend fun export(): String = withContext(Dispatchers.IO) { exportBackup() }
+    suspend fun import(json: String): Int = withContext(Dispatchers.IO) { importBackup(json) }
+}
+
+data class SettingsState(
+    val user: com.gazna.domain.model.UserApp? = null,
+    val settings: com.gazna.domain.model.AppSettings = com.gazna.domain.model.AppSettings()
+)
+
+@HiltViewModel
+class PersonDetailViewModel @Inject constructor(
+    observePersonWithTransactions: ObservePersonWithTransactionsUseCase,
+    private val deletePerson: com.gazna.domain.usecase.DeletePersonUseCase,
+    savedStateHandle: androidx.lifecycle.SavedStateHandle
+) : ViewModel() {
+    private val personId: String = savedStateHandle["personId"] ?: ""
+
+    val state: StateFlow<PersonDetailState> =
+        observePersonWithTransactions(personId)
+            .map { pwt ->
+                PersonDetailState(
+                    person = pwt?.person,
+                    transactions = pwt?.transactions ?: emptyList(),
+                    received = pwt?.totalReceived ?: 0.0,
+                    issued = pwt?.totalIssued ?: 0.0,
+                    balance = pwt?.balance ?: 0.0,
+                    isSettled = pwt?.isSettled == true
+                )
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PersonDetailState())
+
+    fun delete() = viewModelScope.launch {
+        state.value.person?.let { deletePerson(it.id) }
+    }
+}
+
+data class PersonDetailState(
+    val person: com.gazna.domain.model.Person? = null,
+    val transactions: List<com.gazna.domain.model.Transaction> = emptyList(),
+    val received: Double = 0.0,
+    val issued: Double = 0.0,
+    val balance: Double = 0.0,
+    val isSettled: Boolean = false
+)
+
+// ------- TransactionDetail Screen --------------------------------------------------------------
+
+data class TransactionDetailState(
+    val subTransactions: List<Transaction> = emptyList(),
+    val transaction: Transaction? = null,
+    val person: Person? = null,
+    val loaded: Boolean = false,
+    val notFound: Boolean = false
+)
+
+@HiltViewModel
+class TransactionDetailViewModel @Inject constructor(
+    observeTransactions: ObserveTransactionsUseCase,
+    private val getPerson: com.gazna.domain.usecase.GetPersonUseCase,
+    private val deleteTransaction: com.gazna.domain.usecase.DeleteTransactionUseCase,
+    private val saveTransaction: SaveTransactionUseCase,
+    private val getTransaction: GetTransactionUseCase,
+    private val reportsApi: ReportsApi,
+    @ApplicationContext private val ctx: Context,
+    savedStateHandle: androidx.lifecycle.SavedStateHandle
+) : ViewModel() {
+    private val transactionId: String = savedStateHandle["transactionId"] ?: ""
+    private val _state = MutableStateFlow(TransactionDetailState())
+    val state: StateFlow<TransactionDetailState> = _state.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            observeTransactions().collect { transactions ->
+                val tx = transactions.firstOrNull { it.id == transactionId }
+                _state.value = if (tx == null) {
+                    TransactionDetailState(loaded = true, notFound = true)
+                } else {
+                    TransactionDetailState(
+                        transaction = tx,
+                        subTransactions = transactions.filter { it.parentTransactionId == tx.id }
+                            .sortedWith(compareBy<Transaction> { it.date }.thenBy { it.time }),
+                        person = getPerson(tx.personId),
+                        loaded = true
+                    )
+                }
+            }
+        }
+    }
+
+    suspend fun saveTags(input: String): Boolean {
+        val latest = getTransaction(transactionId) ?: return false
+        saveTransaction(latest.copy(tags = parseTransactionTags(input)))
+        return true
+    }
+
+    suspend fun delete(): Boolean {
+        val tx = state.value.transaction ?: return false
+        return runCatching { deleteTransaction(tx.id) }.isSuccess
+    }
+
+    suspend fun export(format: ReportFormat): Pair<File?, ReportFormat?> = withContext(Dispatchers.IO) {
+        val tx = state.value.transaction
+            ?: return@withContext null to null
+        val person = state.value.person
+        val baseName = "transaction_${tx.id.take(8)}"
+        val exportContext = ctx.wrapWithLocale(com.gazna.domain.model.AppLanguage.fromCode(java.util.Locale.getDefault().language))
+        val file = LocalReportGenerator.createOutputFile(exportContext, baseName, format)
+        val entries = listOf(tx) + state.value.subTransactions
+        val received = entries.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
+        val issued = entries.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
+        val people = person?.let { mapOf(it.id to it) }.orEmpty()
+        val from = entries.minOf { it.date }
+        val to = entries.maxOf { it.date }
+        val success: Boolean = if (entries.size == 1) when (format) {
+            ReportFormat.CSV -> LocalReportGenerator.writeTransactionCsv(file, tx, person, exportContext)
+            ReportFormat.XLSX -> LocalReportGenerator.writeTransactionXlsx(file, tx, person, exportContext)
+            ReportFormat.PDF -> LocalReportGenerator.writeTransactionPdf(file, tx, person, exportContext)
+        } else when (format) {
+            ReportFormat.CSV -> LocalReportGenerator.writeTransactionsCsv(file, entries, people, "TMT", received, issued, from, to, exportContext)
+            ReportFormat.XLSX -> LocalReportGenerator.writeTransactionsXlsx(file, entries, people, "TMT", received, issued, from, to, exportContext)
+            ReportFormat.PDF -> LocalReportGenerator.writeTransactionsPdf(file, entries, people, "TMT", received, issued, from, to, exportContext)
+        }
+        return@withContext if (success && file.exists() && file.length() > 0L) {
+            file to format
+        } else {
+            runCatching { file.delete() }
+            null to null
+        }
+    }
+}
+
+@HiltViewModel
+class ReportUserViewModel @Inject constructor(
+    observePerson: ObservePersonWithTransactionsUseCase,
+    observeAllPersons: ObservePersonsWithTransactionsUseCase,
+    observeTransactions: ObserveTransactionsUseCase,
+    private val reportsApi: ReportsApi,
+    @ApplicationContext private val ctx: Context,
+    savedStateHandle: androidx.lifecycle.SavedStateHandle
+) : ViewModel() {
+    val preselectedPersonId: String? =
+        savedStateHandle.get<String>("personId")?.ifBlank { null }
+    val personId = MutableStateFlow<String?>(preselectedPersonId)
+    val fromDate = MutableStateFlow(startOfMonthMillis())
+    val toDate = MutableStateFlow(endOfDayMillis(System.currentTimeMillis()))
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val persons: StateFlow<List<PersonWithTransactions>> =
+        observeAllPersons(null, null).stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()
+        )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val state: StateFlow<ReportUserState> = combine(personId, fromDate, toDate) { id, f, t ->
+        Triple(id, f, t)
+    }.flatMapLatest { (id, f, t) ->
+        val pwtFlow: Flow<PersonWithTransactions?> = id?.let { observePerson(it) } ?: flowOf<PersonWithTransactions?>(null)
+        val txFlow = id?.let { observeTransactions(it, f, t) } ?: flowOf<List<Transaction>>(emptyList())
+        pwtFlow.combine(txFlow) { pwt, txs ->
+            val list = if (id != null) txs else emptyList()
+            val recv = list.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
+            val iss = list.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
+            ReportUserState(
+                person = pwt?.person,
+                transactions = list,
+                received = recv,
+                issued = iss,
+                balance = recv - iss,
+                fromDate = f,
+                toDate = t
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportUserState())
+
+    fun updatePerson(id: String?) { personId.value = id }
+    fun updateFrom(m: Long) {
+        fromDate.value = startOfDayMillis(m)
+        if (toDate.value < fromDate.value) toDate.value = endOfDayMillis(m)
+    }
+    fun updateTo(m: Long) {
+        toDate.value = endOfDayMillis(m)
+        if (fromDate.value > toDate.value) fromDate.value = startOfDayMillis(m)
+    }
+
+    fun export(format: ReportFormat, currencyCode: String = "TMT") {
+        val current = state.value
+        val person = current.person ?: return
+        val list = current.transactions
+        val pwt = com.gazna.domain.model.PersonWithTransactions(person, list)
+        val personName = person.name.filter { it.isLetterOrDigit() }.ifBlank { "user" }
+        viewModelScope.launch(Dispatchers.IO) {
+            val exportContext = ctx.wrapWithLocale(com.gazna.domain.model.AppLanguage.fromCode(java.util.Locale.getDefault().language))
+            val file = LocalReportGenerator.createOutputFile(exportContext, "report_${personName}", format)
+            val ok = when (format) {
+                ReportFormat.CSV -> LocalReportGenerator.writePersonReportCsv(
+                    file, pwt, list, currencyCode, current.fromDate, current.toDate, exportContext
+                )
+                ReportFormat.XLSX -> LocalReportGenerator.writePersonReportXlsx(
+                    file, pwt, list, currencyCode, current.fromDate, current.toDate, exportContext
+                )
+                ReportFormat.PDF -> LocalReportGenerator.writePersonReportPdf(
+                    file, pwt, list, currencyCode, current.fromDate, current.toDate, exportContext
+                )
+            }
+            if (ok && file.exists() && file.length() > 0L) {
+                withContext(Dispatchers.Main) { ReportExportHelper.shareFile(exportContext, file, format) }
+            } else {
+                runCatching { file.delete() }
+            }
+        }
+    }
+
+    companion object {
+        fun startOfMonthMillis(): Long {
+            val c = Calendar.getInstance()
+            c.set(Calendar.DAY_OF_MONTH, 1); c.set(Calendar.HOUR_OF_DAY, 0); c.clear(Calendar.MINUTE); c.clear(Calendar.SECOND); c.clear(Calendar.MILLISECOND)
+            return c.timeInMillis
+        }
+    }
+}
+
+data class ReportUserState(
+    val person: com.gazna.domain.model.Person? = null,
+    val transactions: List<com.gazna.domain.model.Transaction> = emptyList(),
+    val received: Double = 0.0,
+    val issued: Double = 0.0,
+    val balance: Double = 0.0,
+    val fromDate: Long = 0L,
+    val toDate: Long = 0L
+)
+
+@HiltViewModel
+class ReportSummaryViewModel @Inject constructor(
+    observePersons: ObservePersonsWithTransactionsUseCase,
+    observeTransactions: ObserveTransactionsUseCase,
+    private val reportsApi: ReportsApi,
+    @ApplicationContext private val ctx: Context
+) : ViewModel() {
+    val fromDate = MutableStateFlow(startOfMonthMillis())
+    val toDate = MutableStateFlow(endOfDayMillis(System.currentTimeMillis()))
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val state: StateFlow<ReportSummaryState> = combine(fromDate, toDate) { f, t -> f to t }
+        .flatMapLatest { (f, t) ->
+            observeTransactions(null, f, t).combine(observePersons(null, null)) { txs, pwts ->
+                val summaryRows = pwts.map { pwt ->
+                    val txsFor = txs.filter { it.personId == pwt.person.id }
+                    val recv = txsFor.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
+                    val iss = txsFor.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
+                    ReportSummaryRow(pwt.person, txsFor.size, recv, iss, recv - iss, transactions = txsFor)
+                }
+                ReportSummaryState(
+                    rows = summaryRows,
+                    totalReceived = summaryRows.sumOf { it.received },
+                    totalIssued = summaryRows.sumOf { it.issued },
+                    fromDate = f,
+                    toDate = t
+                )
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportSummaryState())
+
+    fun updateFrom(m: Long) {
+        fromDate.value = startOfDayMillis(m)
+        if (toDate.value < fromDate.value) toDate.value = endOfDayMillis(m)
+    }
+    fun updateTo(m: Long) {
+        toDate.value = endOfDayMillis(m)
+        if (fromDate.value > toDate.value) fromDate.value = startOfDayMillis(m)
+    }
+
+    fun export(format: ReportFormat, currencyCode: String = "TMT") {
+        val f = fromDate.value
+        val t = toDate.value
+        val current = state.value
+        val total = FinanceSummary(current.totalReceived, current.totalIssued)
+        val rows = current.rows
+        viewModelScope.launch(Dispatchers.IO) {
+            val exportContext = ctx.wrapWithLocale(com.gazna.domain.model.AppLanguage.fromCode(java.util.Locale.getDefault().language))
+            val file = LocalReportGenerator.createOutputFile(exportContext, "summary_report", format)
+            val ok = when (format) {
+                ReportFormat.CSV -> LocalReportGenerator.writeSummaryCsv(
+                    file, rows, total, currencyCode, f, t, exportContext
+                )
+                ReportFormat.XLSX -> LocalReportGenerator.writeSummaryXlsx(
+                    file, rows, total, currencyCode, f, t, exportContext
+                )
+                ReportFormat.PDF -> LocalReportGenerator.writeSummaryPdf(
+                    file, rows, total, currencyCode, f, t, exportContext
+                )
+            }
+            if (ok && file.exists() && file.length() > 0L) {
+                withContext(Dispatchers.Main) { ReportExportHelper.shareFile(exportContext, file, format) }
+            } else {
+                runCatching { file.delete() }
+            }
+        }
+    }
+
+    companion object {
+        fun startOfMonthMillis(): Long {
+            val c = Calendar.getInstance()
+            c.set(Calendar.DAY_OF_MONTH, 1); c.set(Calendar.HOUR_OF_DAY, 0); c.clear(Calendar.MINUTE); c.clear(Calendar.SECOND); c.clear(Calendar.MILLISECOND)
+            return c.timeInMillis
+        }
+    }
+}
+
+data class ReportSummaryState(
+    val rows: List<ReportSummaryRow> = emptyList(),
+    val totalReceived: Double = 0.0,
+    val totalIssued: Double = 0.0,
+    val fromDate: Long = 0L,
+    val toDate: Long = 0L
+) {
+    val totalBalance: Double get() = totalReceived - totalIssued
+}
+
+@HiltViewModel
+class ReportTransactionsViewModel @Inject constructor(
+    observePersons: ObservePersonsWithTransactionsUseCase,
+    observeTransactions: ObserveTransactionsUseCase,
+    private val reportsApi: ReportsApi,
+    @ApplicationContext private val ctx: Context,
+    savedStateHandle: androidx.lifecycle.SavedStateHandle
+) : ViewModel() {
+    private data class Filters(val personId: String?, val type: TransactionType?, val from: Long, val to: Long, val allDates: Boolean)
+    val search = MutableStateFlow(savedStateHandle.get<String>("search").orEmpty())
+    val allDates = MutableStateFlow(search.value.isNotBlank())
+
+    val statusFilter = MutableStateFlow<TransactionStatus?>(null)
+    val personFilter = MutableStateFlow<String?>(null)
+    val typeFilter = MutableStateFlow<TransactionType?>(null)
+    val fromDate = MutableStateFlow(startOfMonthMillis())
+    val toDate = MutableStateFlow(endOfDayMillis(System.currentTimeMillis()))
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val persons: StateFlow<List<PersonWithTransactions>> =
+        observePersons(null, null).stateIn(
+            viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList()
+        )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val state: StateFlow<ReportTransactionsState> =
+        combine(personFilter, typeFilter, fromDate, toDate, allDates) { pid, t, f, to, all ->
+            Filters(pid, t, f, to, all)
+        }.flatMapLatest { (pid, t, f, to, all) ->
+            observeTransactions(pid, if (all) null else f, if (all) null else to).map { txs ->
+                val filtered = if (t != null) txs.filter { it.type == t } else txs
+                val recv = filtered.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount }
+                val iss = filtered.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount }
+                ReportTransactionsState(filtered, recv, iss, f, to, all)
+            }
+        }.combine(combine(statusFilter, search, persons) { status, query, people -> Triple(status, query, people) }) { current, (status, query, people) ->
+            val names = people.associate { it.person.id to it.person.name }
+            val transactions = current.transactions.filter {
+                (status == null || it.status == status) && it.matchesSearch(query, names[it.personId].orEmpty())
+            }
+            current.copy(transactions = transactions,
+                received = transactions.filter { it.type == TransactionType.RECEIVED }.sumOf { it.amount },
+                issued = transactions.filter { it.type == TransactionType.ISSUED }.sumOf { it.amount },
+                fromDate = if (current.allDates) transactions.minOfOrNull { it.date } ?: current.fromDate else current.fromDate,
+                toDate = if (current.allDates) transactions.maxOfOrNull { it.date }?.let { endOfDayMillis(it) } ?: current.toDate else current.toDate)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReportTransactionsState())
+
+    fun setSearch(query: String) {
+        search.value = query
+        if ('#' in query) allDates.value = true
+    }
+
+    fun setPerson(id: String?) { personFilter.value = id }
+    fun setType(t: TransactionType?) { typeFilter.value = t }
+    fun updateFrom(m: Long) {
+        fromDate.value = startOfDayMillis(m)
+        if (toDate.value < fromDate.value) toDate.value = endOfDayMillis(m)
+    }
+    fun updateTo(m: Long) {
+        toDate.value = endOfDayMillis(m)
+        if (fromDate.value > toDate.value) fromDate.value = startOfDayMillis(m)
+    }
+
+    fun export(format: ReportFormat, currencyCode: String = "TMT") {
+        val current = state.value
+        val f = current.fromDate
+        val t = current.toDate
+        val txs = current.transactions
+        val personsById = persons.value.associate { it.person.id to it.person }
+        viewModelScope.launch(Dispatchers.IO) {
+            val exportContext = ctx.wrapWithLocale(com.gazna.domain.model.AppLanguage.fromCode(java.util.Locale.getDefault().language))
+            val file = LocalReportGenerator.createOutputFile(exportContext, "transactions_report", format)
+            val ok = when (format) {
+                ReportFormat.CSV -> LocalReportGenerator.writeTransactionsCsv(
+                    file, txs, personsById, currencyCode,
+                    current.received, current.issued, f, t, exportContext
+                )
+                ReportFormat.XLSX -> LocalReportGenerator.writeTransactionsXlsx(
+                    file, txs, personsById, currencyCode,
+                    current.received, current.issued, f, t, exportContext
+                )
+                ReportFormat.PDF -> LocalReportGenerator.writeTransactionsPdf(
+                    file, txs, personsById, currencyCode,
+                    current.received, current.issued, f, t, exportContext
+                )
+            }
+            if (ok && file.exists() && file.length() > 0L) {
+                withContext(Dispatchers.Main) { ReportExportHelper.shareFile(exportContext, file, format) }
+            } else {
+                runCatching { file.delete() }
+            }
+        }
+    }
+
+    companion object {
+        fun startOfMonthMillis(): Long {
+            val c = Calendar.getInstance()
+            c.set(Calendar.DAY_OF_MONTH, 1); c.set(Calendar.HOUR_OF_DAY, 0); c.clear(Calendar.MINUTE); c.clear(Calendar.SECOND); c.clear(Calendar.MILLISECOND)
+            return c.timeInMillis
+        }
+    }
+}
+
+data class ReportTransactionsState(
+    val transactions: List<com.gazna.domain.model.Transaction> = emptyList(),
+    val received: Double = 0.0,
+    val issued: Double = 0.0,
+    val fromDate: Long = 0L,
+    val toDate: Long = 0L,
+    val allDates: Boolean = false
+) {
+    val balance: Double get() = received - issued
+}
+
+@HiltViewModel
+class TransactionActionsViewModel @Inject constructor(
+    private val repository: com.gazna.domain.repository.TransactionRepository
+) : ViewModel() {
+    suspend fun setStatus(id: String, status: TransactionStatus) = viewModelScope.async { repository.setTransactionStatus(id, status) }.await()
+}

@@ -9,6 +9,6 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  console.log(`[netije] backend on :${port}/api`);
+  console.log(`[gazna] backend on :${port}/api`);
 }
 bootstrap();

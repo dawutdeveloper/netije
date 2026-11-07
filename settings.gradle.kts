@@ -38,5 +38,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Netije"
+rootProject.name = "Gazna"
 include(":app")

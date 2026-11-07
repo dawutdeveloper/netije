@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Netije</string>
+    <string name="app_name">Gazna</string>
 
     <string name="nav_home">Home</string>
     <string name="nav_calendar">Calendar</string>
@@ -112,7 +112,7 @@
     <string name="toast_export_success">report saved</string>
     <string name="toast_export_error">Export error</string>
     <string name="toast_share_title">Share report</string>
-    <string name="toast_share_subject">Netije report</string>
+    <string name="toast_share_subject">Gazna report</string>
 
     <string name="perm_read_contacts_rationale">Contacts access is needed to add debtors and creditors quickly</string>
     <string name="perm_contacts_denied">Contacts permission not granted</string>

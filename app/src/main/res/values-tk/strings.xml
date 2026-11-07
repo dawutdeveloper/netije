@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Netije</string>
+    <string name="app_name">Gazna</string>
 
     <string name="nav_home">Baş sahypa</string>
     <string name="nav_calendar">Sene tertibi</string>
@@ -112,7 +112,7 @@
     <string name="toast_export_success">Hasabat üstünlikli saklandy</string>
     <string name="toast_export_error">Eksport etmekde näsazlyk ýüze çykdy</string>
     <string name="toast_share_title">Hasabaty paýlaşmak</string>
-    <string name="toast_share_subject">Netije hasabaty</string>
+    <string name="toast_share_subject">Gazna hasabaty</string>
 
     <string name="perm_read_contacts_rationale">Karz alanlary we karz berenleri çalt goşmak üçin kontaktlara girmäge rugsat gerek</string>
     <string name="perm_contacts_denied">Kontaktlara girmäge rugsat berilmedi</string>

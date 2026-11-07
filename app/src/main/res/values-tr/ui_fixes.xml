@@ -19,7 +19,7 @@
     <string name="backup_import_title">Kayıtlı yedek içe aktarılsın mı?</string>
     <string name="backup_import_explanation">Kayıtlar kimliklerine göre birleştirilir. Bu telefondaki daha yeni kayıtlar korunur ve mevcut bilgiler silinmez. İçe aktarmadan önce bir kurtarma kopyası kaydedilir.</string>
     <string name="backup_import_success">İçe aktarma tamamlandı: %1$d kayıt eklendi veya güncellendi.</string>
-    <string name="backup_import_failed">Bu yedek içe aktarılamadı. Geçerli bir Netije yedeği olduğundan emin olun. Mevcut kayıtlarınız korundu.</string>
+    <string name="backup_import_failed">Bu yedek içe aktarılamadı. Geçerli bir Gazna yedeği olduğundan emin olun. Mevcut kayıtlarınız korundu.</string>
     <string name="backup_export_file">Yedeği dosyaya kaydet</string>
     <string name="backup_export_success">Yedek kaydedildi. Bu dosyayı diğer telefonunuza aktarın ve Yedeği içe aktar seçeneğini seçin.</string>
     <string name="backup_transfer_hint">Kayıtlarınızı, fotoğraflarınızı ve eklerinizi başka bir telefona aktarmak için bir yedek dosyası kaydedin. Eski yedekler yalnızca içerdikleri dosyaları geri yükleyebilir.</string>

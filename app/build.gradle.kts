@@ -15,15 +15,16 @@ if (localPropsFile.exists()) {
 }
 
 android {
-    namespace = "com.example.netije"
+    namespace = "com.gazna"
     compileSdk = 37
 
     defaultConfig {
+        // Preserve installed app identity, existing data, and OAuth registrations.
         applicationId = "com.example.netije"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

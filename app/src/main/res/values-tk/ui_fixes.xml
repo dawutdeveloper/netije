@@ -19,7 +19,7 @@
     <string name="backup_import_title">Saklanan nusgany import etmelimi?</string>
     <string name="backup_import_explanation">Ýazgylar ID boýunça birleşdiriler. Bu telefondaky täze ýazgylar saklanar, maglumatlar pozulmaz. Importdan öň dikeldiş nusgasy dörediler.</string>
     <string name="backup_import_success">Import tamamlandy: %1$d ýazgy goşuldy ýa-da täzelendi.</string>
-    <string name="backup_import_failed">Nusgany import edip bolmady. Dogry Netije nusgasyny saýlaň. Öňki ýazgylar saklandy.</string>
+    <string name="backup_import_failed">Nusgany import edip bolmady. Dogry Gazna nusgasyny saýlaň. Öňki ýazgylar saklandy.</string>
     <string name="backup_export_file">Nusgany faýla sakla</string>
     <string name="backup_export_success">Nusga saklandy. Faýly başga telefona geçiriň we import etmegi saýlaň.</string>
     <string name="backup_transfer_hint">Ýazgylary, suratlary we goşundylary başga telefona geçirmek üçin nusgany faýla saklaň. Köne nusgalar diňe içindäki faýllary dikeldip biler.</string>

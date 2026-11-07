@@ -1,7 +1,7 @@
 {
-  "name": "netije-backend",
+  "name": "gazna-backend",
   "version": "1.0.0",
-  "description": "Netije debt & loan tracking backend",
+  "description": "Gazna debt & loan tracking backend",
   "private": true,
   "scripts": {
     "build": "nest build",

@@ -1,6 +1,8 @@
+[English](README.md) | [Русский](docs/README.ru.md) | [Türkçe](docs/README.tr.md)
+
 <div align="center">
 
-# Netije
+# Gazna
 
 ### A clearer picture of every loan, payment, and balance.
 
@@ -15,7 +17,7 @@ A native Android app for managing personal debts and loans, built with Kotlin, J
 
 </div>
 
-Netije brings people, transactions, and repayment history into one place. Record money received or issued, follow each person's balance, and turn your records into shareable reports. Core recordkeeping uses local storage, so it does not require a backend connection.
+Gazna brings people, transactions, and repayment history into one place. Record money received or issued, follow each person's balance, and turn your records into shareable reports. Core recordkeeping uses local storage, so it does not require a backend connection.
 
 ## Screenshots
 
@@ -29,13 +31,13 @@ A focused dark interface for recording transactions, browsing the calendar, and 
   </tr>
   <tr>
     <td align="center" valign="top">
-      <a href="docs/screenshots/01-new-entry.png"><img src="docs/screenshots/01-new-entry.png" width="260" alt="Netije new entry screen in dark mode with received and issued funds, date, purpose, amount, and tags" /></a>
+      <a href="docs/screenshots/01-new-entry.png"><img src="docs/screenshots/01-new-entry.png" width="260" alt="Gazna new entry screen in dark mode with received and issued funds, date, purpose, amount, and tags" /></a>
     </td>
     <td align="center" valign="top">
-      <a href="docs/screenshots/02-calendar.png"><img src="docs/screenshots/02-calendar.png" width="260" alt="Netije November calendar in dark mode with monthly totals, transaction status filters, and a selected day" /></a>
+      <a href="docs/screenshots/02-calendar.png"><img src="docs/screenshots/02-calendar.png" width="260" alt="Gazna November calendar in dark mode with monthly totals, transaction status filters, and a selected day" /></a>
     </td>
     <td align="center" valign="top">
-      <a href="docs/screenshots/03-preferences-backup.png"><img src="docs/screenshots/03-preferences-backup.png" width="260" alt="Netije preferences showing language, theme, backup import and export, saved backups, and automatic backup settings" /></a>
+      <a href="docs/screenshots/03-preferences-backup.png"><img src="docs/screenshots/03-preferences-backup.png" width="260" alt="Gazna preferences showing language, theme, backup import and export, saved backups, and automatic backup settings" /></a>
     </td>
   </tr>
   <tr>
@@ -61,6 +63,8 @@ Select any screenshot to view the full-size image.
 | Personalization | Choose English, Russian, Turkmen, or Turkish, with light, dark, and system theme options. |
 
 The current app uses Turkmen manat (**TMT**) for its currency setting.
+
+Gazna uses `com.gazna` for source packages. The installed application ID and existing storage names remain unchanged to preserve compatibility with earlier versions. See the [rename compatibility notes](docs/DEVELOPMENT.md#app-name-and-compatibility).
 
 ## Engineering
 
@@ -103,7 +107,7 @@ flowchart TD
 ```text
 app/
   schemas/                     Versioned Room database schemas
-  src/main/java/com/example/netije/
+  src/main/java/com/gazna/
     data/                      Local storage, API clients, backups, repositories
     domain/                    Models, repository contracts, use cases
     presentation/              Screens, components, ViewModels, navigation, exports

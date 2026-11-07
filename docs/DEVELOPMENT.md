@@ -36,6 +36,18 @@ The API listens on port `3000` by default, under `/api`. Modules cover authentic
 
 The current TypeORM configuration uses `synchronize: true`. Use a disposable development database; deployment to an existing or production database requires a deliberate migration strategy. Review the server's CORS and TLS settings before deployment.
 
+## App name and compatibility
+
+The app is named **Gazna**. Kotlin source packages and the Android namespace use `com.gazna` (for example, `com.gazna.domain.model`). The layer structure and dependency boundaries are unchanged. There is no requirement to use `android.com.gazna`; package names should describe the app's own namespace.
+
+The application ID remains `com.example.netije` (`com.example.netije.debug` for debug builds) so the rename preserves installed app identity, app data, FileProvider authorities, and existing OAuth registrations. Changing this ID would create a separate Android app and require updated OAuth configuration. Existing installations still need the same signing key when updating.
+
+The old launcher component is retained as an activity alias. A small worker class at its original package name keeps previously scheduled WorkManager backups runnable. Database filenames, preference keys, backup folders (`Netije/backups`), and attachment paths intentionally retain their original names to preserve existing data. Newly exported backup filenames and report branding use Gazna. Room schema history lives under `app/schemas/com.gazna.data.local.db.NetijeDatabase/`; the schema contents and database version are unchanged.
+
+The GitHub repository URL and existing `NETIJE_*` environment variables also remain valid. A branding change does not require renaming the repository or server database.
+
+After pulling the package rename into an existing checkout, run `.\gradlew.bat :app:clean` once before building to remove generated Hilt classes that reference the old source packages.
+
 ## Validation
 
 From the repository root:

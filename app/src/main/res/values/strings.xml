@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Netije</string>
+    <string name="app_name">Gazna</string>
 
     <string name="nav_home">Главная</string>
     <string name="nav_calendar">Календарь</string>
@@ -114,7 +114,7 @@
     <string name="toast_export_success">отчет сохранен</string>
     <string name="toast_export_error">Ошибка экспорта</string>
     <string name="toast_share_title">Поделиться отчетом</string>
-    <string name="toast_share_subject">Netije отчет</string>
+    <string name="toast_share_subject">Gazna отчет</string>
 
     <string name="perm_read_contacts_rationale">Нужен доступ к контактам для быстрого добавления должников и кредиторов</string>
     <string name="perm_contacts_denied">Нет разрешения на доступ к контактам</string>
